@@ -1,0 +1,2 @@
+# ShineBot
+twitch irc bot 
