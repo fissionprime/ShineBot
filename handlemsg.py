@@ -1,0 +1,353 @@
+import re
+import socket
+import cmds
+import cfg
+import json
+import time
+import inspect
+import copy
+import pyclbr
+
+CHAT_MSG=re.compile(r"@badges=(?P<badges>.*?);(?:.*?;)*?display-name=" \
+    r"(?P<usr>\w+);(?:.*?;)*?mod=(?P<mod>\d);(?:.*?;)*?subscriber=" \
+    r"(?P<sub>\d);(?:.*?;)*?user-id=(?P<id>\d+);user-type=(?P<type>.*)" \
+    r" :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :(?P<mess>.+)")
+
+cfg.waiting_msgs = []
+cfg.waiting = False
+cfg.cmdlist = {}
+
+def init():
+    cfg.waiting_msgs = [] #fmt = [time, name of command = None, "<msg>"]
+    cfg.waiting = False
+    cfg.cmdlist = {}
+    try:
+        with open(cfg.CHAN[1:] + "_cmds.txt") as file:
+            data = json.load(file)
+            cfg.waiting = data["_waiting"]
+            cfg.waiting_msgs = data["queue"]
+            existingcommands = data["commands"].items()
+            print existingcommands
+            for name ,com in existingcommands:
+                if com.get("text"):
+                    cfg.cmdlist.update({com["name"] : cmds.TextCommand(com["name"],
+                        com["mess"], com["delays"], com["cd"], com["perm"],
+                        com["aliases"])})
+                if not com.get("text"):
+                    try:
+                        argspec = inspect.getargspec(getattr(getattr(cmds,
+                            com["name"]),"__init__"))
+                        dct = copy.deepcopy(com)
+                        if not argspec.keywords:
+                            for key in dct.keys():
+                                if key not in argspec.args:
+                                    del dct[key]
+                        cfg.cmdlist.update({com["name"] :
+                            getattr(cmds, com["name"])(**dct)})
+                        del dct
+                    except AttributeError:
+                        pass #no built in com with this name
+                if com.get("locked"):
+                    cfg.cmdlist[com["name"]].locked = True
+                for alias in com["aliases"]:
+                    if alias in cfg.cmdlist:
+                        if cfg.cmdlist[alias].get("text"):
+                            cfg.cmdlist.update({alias : cfg.cmdlist[com["name"]]})
+                        classes = pyclbr.readmodule("cmds").items()
+            #check for new commands
+            classes = pyclbr.readmodule("cmds").items()
+            for name, cmd in classes:
+                if name != "TextCommand" and name not in cfg.cmdlist:
+                    try: #add all classes that inherit from Command
+                        #other than TextCommand
+                        command = cmd.__dict__["super"][0].__dict__
+                        #check if "Command" is an ancestor
+                        while (command["name"] != "Command"):
+                            command = command["super"][0]
+                        temp = getattr(cmds, name)()
+                        cfg.cmdlist.update({temp.__dict__["name"] : temp})
+                    except (AttributeError, TypeError):
+                        continue
+    except (IOError,ValueError): #commands file is empty or nonexistent
+        #dump all the hardcoded commands and include them in new file
+        with open(cfg.CHAN[1:] + "_cmds.txt", 'w') as outfile:
+            cmdsdict = {"_waiting": False, "queue": [], "commands": {}}
+            classes = pyclbr.readmodule("cmds").items()
+            for name, cmd in classes:
+                if name != "TextCommand":
+                    try: #add all classes that inherit from Command
+                        #other than TextCommand
+                        command = cmd.__dict__["super"][0].__dict__
+                        #check if "Command" is an ancestor
+                        while (command["name"] != "Command"):
+                            command = command["super"][0]
+                        temp = getattr(cmds, name)()
+                        cmdsdict["commands"].update({temp.__dict__["name"] : temp.__dict__})
+                        cfg.cmdlist.update({temp.__dict__["name"] : temp})
+                    except (AttributeError, TypeError):
+                        continue
+            print cmdsdict
+            json.dump(cmdsdict, outfile, indent=4)
+
+#import points data up here too
+
+
+
+
+def flatten(l, ltypes=(list, tuple)):
+    """flattens a list or tuple. Code by Mike Fletcher"""
+    ltype = type(l)
+    l = list(l)
+    i = 0
+    while i < len(l):
+        while isinstance(l[i], ltypes):
+            if not l[i]:
+                l.pop(i)
+                i -= 1
+                break
+            else:
+                l[i:i + 1] = l[i]
+        i += 1
+    return ltype(l)
+
+def chat(sock, msg):
+    """
+    Send a chat message to the server.
+    Keyword arguments:
+    sock -- the socket over which to send the message
+    msg  -- the message to be sent
+    """
+    sock.send("PRIVMSG {0} :{1}\n".format(cfg.CHAN, msg).encode("utf-8"))
+    print(cfg.NICK + ": " + str(msg))
+
+def ban(sock, user):
+    """
+    Ban a user from the current channel.
+    Keyword arguments:
+    sock -- the socket over which to send the ban command
+    user -- the user to be banned
+    """
+    chat(sock, ".ban {}".format(user))
+
+def timeout(sock, user, secs=600):
+    """
+    Time out a user for a set period of time.
+    Keyword arguments:
+    sock -- the socket over which to send the timeout command
+    user -- the user to be timed out
+    secs -- the length of the timeout in seconds (default 600)
+    """
+    chat(sock, ".timeout {}".format(user, secs))
+
+def checkmsg(s, response):
+    """
+    prints any waiting messages, and parses incoming messages
+    to determine if they are commands to execute
+    """
+    res = re.match(CHAT_MSG, response)
+    message = ""
+    try:
+        username = res.group("usr")
+        usrid = res.group("id")
+        message = res.group("mess")
+        print(username + ": " + message)
+    except AttributeError:
+        pass    
+    if cfg.waiting:
+        t = time.time()
+        if t >= cfg.waiting_msgs[0][0]:
+            msg = cfg.waiting_msgs.pop(0)
+            if msg[1]:
+                try:
+                    cmd = cfg.cmdlist[msg[1]]
+                    try:
+                        cmd.execute(("ShineBot_", 99999), s, cfg.waiting_msgs, 
+                            msg_ind = cmd.mess.index(msg[2]) + 1, single=False)
+                        
+                    except ValueError:
+                        pass
+                except KeyError:
+                    pass
+            else:
+                chat(s, msg[2])
+            if not cfg.waiting_msgs:
+                cfg.waiting = False
+        #check and see if queued up message should be posted
+        #if queued message is not from a TextCommand, send it
+        #if it is from one, find msg_ind and execute with correct value.
+    com = re.match(r"!(\w+)", message)
+    if com:
+        try:
+            perm = userpermlvl(res)
+            args = parsemsg(message)
+            exec_com(s, args, (username, usrid))
+            if cfg.waiting_msgs:
+                cfg.waiting = True
+        except:
+            raise
+    #raise KeyboardInterrupt
+        #thing = cmds.TextCommand("testcommand", ["test"])
+        #chat(s, test)
+
+def parsemsg(r):
+    """takes a chat command message and returns a parsed version"""
+    quote = re.compile(r"""\s?((?:".*")|(?:'.*'))\s?""")
+    keywords = re.compile(r"\s?(\w+\s?=\s?\w+)\s?")
+    kw = {}
+    words = []
+    nums = []
+    flags = []
+    coms = []
+    quotes = []
+    unparsed = []
+
+    #take string and split by quotes. pop all list elements containing quotes
+    msg = quote.split(r)
+    i = 0
+    while i < len(msg): #while loop since changing list elements
+        if msg[i].count('\"') == 2 or msg[i].count("\'") == 2: #check matched quotes
+            quotes.append(eval(msg.pop(i)))
+        else:
+            i += 1
+    #split out keywords, pop all elements with '='
+    for j,el in enumerate(msg):
+        msg[j] = keywords.split(el)
+    msg = flatten(msg)
+    i = 0
+    while i < len(msg): #while loop since changing list elements
+        if '=' in msg[i]: #check for keywords
+            entry = re.split(r'\s?=\s?',msg.pop(i))
+            kw.update({entry[0]:entry[1]}) #add keywords to dict
+        elif msg[i] == '' or re.match(r'/s+',msg[i]):
+            del msg[i]
+        else:
+            i += 1
+    #split according to remaining whitespace
+    for j,el in enumerate(msg):
+        msg[j] = re.split(r'\s+',el)
+    msg = flatten(msg)
+    i = 0
+    while i < len(msg): #while loop since changing list elements
+        if msg[i].startswith('-'): #check for flags
+            try:
+                for char in msg[i][1:]:
+                    flags.append(char)
+            except:
+                unparsed.append(msg[i])
+            del msg[i]
+        elif msg[i].startswith('!'):
+            coms.append(msg.pop(i))
+        elif re.match(r'\d+(\.\d+)?',msg[i]): #input is a number
+            nums.append(float(msg.pop(i)))
+        elif re.match(r'\w+',msg[i]): #input is a word
+            words.append(msg.pop(i))
+        else:
+            unparsed.append(msg.pop(i))
+    return [coms, kw, words, nums, flags, quotes, unparsed]
+
+def exec_com(s, m, user):
+    """executes a parsed command
+    user = (username, usrid)"""
+    fmt = None
+    #perm = userpermlvl() #check permission here
+
+    #formats should be included for each command in cmds.py
+    #acceptable format terms: str, float, int, quote, flag or list() of
+    #any of these
+    secondarycmd = None
+    cmdtype = None
+    curr_cmd = None
+    #figure out if command exists in cmds file or if is textcommand
+    try:
+        curr_cmd = cfg.cmdlist[m[0][0][1:].lower()]
+        #print m[0][0][1:]
+        #print curr_cmd.__dict__
+
+        if curr_cmd.name not in ["addcom", "editcom"]:
+            if len(m[0]) > 1 or m[2]:                    
+                if len(m[0]) > 1:
+                    secondarycmd = m[0].pop(1)[1:].lower()
+                elif m[2]:
+                    secondarycmd = m[2].pop(0).lower()
+        elif len(m[0]) > 1:
+            m[2].insert(0, m[0][1][1:].lower())
+
+    except KeyError: #command doesn't exist in 
+        chat(s, "No command \"" + m[0][0] + "\"")
+        return False
+    if secondarycmd:
+        fmt = curr_cmd.formats[secondarycmd]
+        curr_cmd = getattr(curr_cmd, secondarycmd)
+    else:
+        fmt = curr_cmd.formats["__call__"]
+        curr_cmd = getattr(curr_cmd, "__call__")
+    params = {}
+    #pair up parsed values to command args
+    for arg in inspect.getargspec(curr_cmd)[0]:
+        if arg in m[1]:
+            params.update({arg:m[1][arg]})
+        elif arg == 'kwargs'
+        if arg == 'self':
+            continue
+        islist = re.match(r'list\((.+)\)', fmt[arg])
+        fmt_this_arg = fmt[arg]
+        if islist:
+            fmt_this_arg = islist.group(1)
+        if fmt_this_arg == 'str':
+            if islist:
+                params.update({arg: copy.copy(m[2])})
+                del m[2][:]
+            elif m[2]:
+                params.update({arg: m[2].pop(0)})
+        elif fmt_this_arg == 'float' or fmt_this_arg == 'int':
+            if islist:
+                nums = copy.copy(m[3])
+                for num in nums:
+                    num = eval(fmt_this_arg)(num)
+                params.update({arg: nums})
+                del m[3][:]
+            elif m[3]:
+                params.update({arg: eval(fmt_this_arg)(m[3].pop(0))})
+        elif fmt_this_arg == 'quote':
+            if islist:
+                params.update({arg:copy.copy(m[5])})
+                del m[5][:]
+            elif m[5]:
+                params.update({arg: m[5].pop(0)})
+        elif fmt_this_arg == 'flag':
+            params.update({arg:copy.copy(m[4])})
+            del m[4][:]
+        elif fmt_this_arg == 'sock':
+            params.update({arg: s})
+        elif fmt_this_arg == 'queue':
+            params.update({arg: cfg.waiting_msgs})
+        elif fmt_this_arg == 'usr':
+            params.update({arg: user})
+        elif fmt_this_arg == 'cmdlist':
+            params.update({arg: cfg.cmdlist})
+        else: #incorrect format
+            continue
+    #print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
+    if inspect.getargspec(curr_cmd).keywords:
+        params.update(m[1])
+    result = curr_cmd(**params)
+    #handle permissions in here
+
+def userpermlvl(match):
+    username = match.group("usr")
+    userid = int(match.group("id"))
+    mod = int(match.group("mod"))
+    sub = int(match.group("sub"))
+    usertype = match.group("type")
+    permlvl = 0
+    user = username.lower()
+    if user in cfg.ADMINS or user == cfg.CHAN[1:]:
+        permlvl = 3
+    elif usertype:
+        if usertype in ["admin", "staff", "mod", "global_mod"]:
+            permlvl = 2
+    elif sub:
+        permlvl = 1
+    #else permlvl = 0
+    return (username, userid, permlvl)
+#pass username along with perm level to function
