@@ -1,36 +1,44 @@
 import re
 import socket
 import cmds
-import cfg
+import waiting
 import json
 import time
 import inspect
 import copy
 import pyclbr
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+CHAN = os.getenv("CHAN")
+NICK = os.getenv("NICK")
+ADMINS = os.getenv("ADMINS")
 
 CHAT_MSG=re.compile(r"@badges=(?P<badges>.*?);(?:.*?;)*?display-name=" \
     r"(?P<usr>\w+);(?:.*?;)*?mod=(?P<mod>\d);(?:.*?;)*?subscriber=" \
     r"(?P<sub>\d);(?:.*?;)*?user-id=(?P<id>\d+);user-type=(?P<type>.*)" \
     r" :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :(?P<mess>.+)")
 
-cfg.waiting_msgs = []
-cfg.waiting = False
-cfg.cmdlist = {}
+waiting.waiting_msgs = []
+waiting.waiting = False
+waiting.cmdlist = {}
 
 def init():
-    cfg.waiting_msgs = [] #fmt = [time, name of command = None, "<msg>"]
-    cfg.waiting = False
-    cfg.cmdlist = {}
+    waiting.waiting_msgs = [] #fmt = [time, name of command = None, "<msg>"]
+    waiting.waiting = False
+    waiting.cmdlist = {}
     try:
-        with open(cfg.CHAN[1:] + "_cmds.txt") as file:
+        with open(CHAN[1:] + "_cmds.txt") as file:
             data = json.load(file)
-            cfg.waiting = data["_waiting"]
-            cfg.waiting_msgs = data["queue"]
+            waiting.waiting = data["_waiting"]
+            waiting.waiting_msgs = data["queue"]
             existingcommands = data["commands"].items()
             print existingcommands
             for name ,com in existingcommands:
                 if com.get("text"):
-                    cfg.cmdlist.update({com["name"] : cmds.TextCommand(com["name"],
+                    waiting.cmdlist.update({com["name"] : cmds.TextCommand(com["name"],
                         com["mess"], com["delays"], com["cd"], com["perm"],
                         com["aliases"])})
                 if not com.get("text"):
@@ -42,22 +50,22 @@ def init():
                             for key in dct.keys():
                                 if key not in argspec.args:
                                     del dct[key]
-                        cfg.cmdlist.update({com["name"] :
+                        waiting.cmdlist.update({com["name"] :
                             getattr(cmds, com["name"])(**dct)})
                         del dct
                     except AttributeError:
                         pass #no built in com with this name
                 if com.get("locked"):
-                    cfg.cmdlist[com["name"]].locked = True
+                    waiting.cmdlist[com["name"]].locked = True
                 for alias in com["aliases"]:
-                    if alias in cfg.cmdlist:
-                        if cfg.cmdlist[alias].get("text"):
-                            cfg.cmdlist.update({alias : cfg.cmdlist[com["name"]]})
+                    if alias in waiting.cmdlist:
+                        if waiting.cmdlist[alias].get("text"):
+                            waiting.cmdlist.update({alias : waiting.cmdlist[com["name"]]})
                         classes = pyclbr.readmodule("cmds").items()
             #check for new commands
             classes = pyclbr.readmodule("cmds").items()
             for name, cmd in classes:
-                if name != "TextCommand" and name not in cfg.cmdlist:
+                if name != "TextCommand" and name not in waiting.cmdlist:
                     try: #add all classes that inherit from Command
                         #other than TextCommand
                         command = cmd.__dict__["super"][0].__dict__
@@ -65,12 +73,12 @@ def init():
                         while (command["name"] != "Command"):
                             command = command["super"][0]
                         temp = getattr(cmds, name)()
-                        cfg.cmdlist.update({temp.__dict__["name"] : temp})
+                        waiting.cmdlist.update({temp.__dict__["name"] : temp})
                     except (AttributeError, TypeError):
                         continue
     except (IOError,ValueError): #commands file is empty or nonexistent
         #dump all the hardcoded commands and include them in new file
-        with open(cfg.CHAN[1:] + "_cmds.txt", 'w') as outfile:
+        with open(waiting.CHAN[1:] + "_cmds.txt", 'w') as outfile:
             cmdsdict = {"_waiting": False, "queue": [], "commands": {}}
             classes = pyclbr.readmodule("cmds").items()
             for name, cmd in classes:
@@ -83,7 +91,7 @@ def init():
                             command = command["super"][0]
                         temp = getattr(cmds, name)()
                         cmdsdict["commands"].update({temp.__dict__["name"] : temp.__dict__})
-                        cfg.cmdlist.update({temp.__dict__["name"] : temp})
+                        waiting.cmdlist.update({temp.__dict__["name"] : temp})
                     except (AttributeError, TypeError):
                         continue
             print cmdsdict
@@ -117,8 +125,8 @@ def chat(sock, msg):
     sock -- the socket over which to send the message
     msg  -- the message to be sent
     """
-    sock.send("PRIVMSG {0} :{1}\n".format(cfg.CHAN, msg).encode("utf-8"))
-    print(cfg.NICK + ": " + str(msg))
+    sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
+    print(NICK + ": " + str(msg))
 
 def ban(sock, user):
     """
@@ -153,15 +161,15 @@ def checkmsg(s, response):
         print(username + ": " + message)
     except AttributeError:
         print("failed to parse message")    
-    if cfg.waiting:
+    if waiting.waiting:
         t = time.time()
-        if t >= cfg.waiting_msgs[0][0]:
-            msg = cfg.waiting_msgs.pop(0)
+        if t >= waiting.waiting_msgs[0][0]:
+            msg = waiting.waiting_msgs.pop(0)
             if msg[1]:
                 try:
-                    cmd = cfg.cmdlist[msg[1]]
+                    cmd = waiting.cmdlist[msg[1]]
                     try:
-                        cmd.execute(("ShineBot_", 99999), s, cfg.waiting_msgs, 
+                        cmd.execute(("ShineBot_", 99999), s, waiting.waiting_msgs, 
                             msg_ind = cmd.mess.index(msg[2]) + 1, single=False)
                         
                     except ValueError:
@@ -170,8 +178,8 @@ def checkmsg(s, response):
                     pass
             else:
                 chat(s, msg[2])
-            if not cfg.waiting_msgs:
-                cfg.waiting = False
+            if not waiting.waiting_msgs:
+                waiting.waiting = False
         #check and see if queued up message should be posted
         #if queued message is not from a TextCommand, send it
         #if it is from one, find msg_ind and execute with correct value.
@@ -181,8 +189,8 @@ def checkmsg(s, response):
             perm = userpermlvl(res)
             args = parsemsg(message)
             exec_com(s, args, (username, usrid))
-            if cfg.waiting_msgs:
-                cfg.waiting = True
+            if waiting.waiting_msgs:
+                waiting.waiting = True
         except:
             raise
     #raise KeyboardInterrupt
@@ -259,7 +267,7 @@ def exec_com(s, m, user):
     curr_cmd = None
     #figure out if command exists in cmds file or if is textcommand
     try:
-        curr_cmd = cfg.cmdlist[m[0][0][1:].lower()]
+        curr_cmd = waiting.cmdlist[m[0][0][1:].lower()]
         #print m[0][0][1:]
         #print curr_cmd.__dict__
 
@@ -321,11 +329,11 @@ def exec_com(s, m, user):
         elif fmt_this_arg == 'sock':
             params.update({arg: s})
         elif fmt_this_arg == 'queue':
-            params.update({arg: cfg.waiting_msgs})
+            params.update({arg: waiting.waiting_msgs})
         elif fmt_this_arg == 'usr':
             params.update({arg: user})
         elif fmt_this_arg == 'cmdlist':
-            params.update({arg: cfg.cmdlist})
+            params.update({arg: waiting.cmdlist})
         else: #incorrect format
             continue
     #print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
@@ -342,7 +350,7 @@ def userpermlvl(match):
     usertype = match.group("type")
     permlvl = 0
     user = username.lower()
-    if user in cfg.ADMINS or user == cfg.CHAN[1:]:
+    if user in ADMINS or user == CHAN[1:]:
         permlvl = 3
     elif usertype:
         if usertype in ["admin", "staff", "mod", "global_mod"]:

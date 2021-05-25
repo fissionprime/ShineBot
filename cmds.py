@@ -1,7 +1,6 @@
 import time
 import types
 import random
-import cfg
 import json
 #from handlemsg import savecmds
 

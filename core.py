@@ -1,4 +1,3 @@
-import cfg
 import socket
 import re
 import time
@@ -16,9 +15,12 @@ load_dotenv()
 PASS = os.getenv("PASS")
 NICK = os.getenv("NICK")
 CHAN = os.getenv("CHAN")
+HOST = os.getenv("HOST")
+PORT = int(os.getenv("PORT"))
 RATE = os.getenv("RATE")
 RATES = RATE.split("/")
 RATE = float(RATES[0])/float(RATES[1])
+print(CHAN)
 
 
 
@@ -29,7 +31,7 @@ CHAT_MSG=re.compile(r"^:\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :")
 connecting = True
 while connecting:
     s = socket.socket()
-    s.connect((cfg.HOST, cfg.PORT))
+    s.connect((HOST, PORT))
     s.send("PASS {}\r\n".format(PASS).encode("utf-8"))
     s.send("NICK {}\r\n".format(NICK).encode("utf-8"))
     s.send("JOIN {}\r\n".format(CHAN).encode("utf-8"))

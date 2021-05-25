@@ -1,6 +1,5 @@
 import requests
 import json
-import cfg
 import math
 
 headers = {'Accept':'application/vnd.twitchtv.v5+json', 
