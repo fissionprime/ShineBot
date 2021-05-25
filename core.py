@@ -17,8 +17,8 @@ PASS = os.getenv("PASS")
 NICK = os.getenv("NICK")
 CHAN = os.getenv("CHAN")
 RATE = os.getenv("RATE")
-print(NICK)
-RATE = int(RATE)
+RATES = RATE.split("/")
+RATE = float(RATES[0])/float(RATES[1])
 
 
 
