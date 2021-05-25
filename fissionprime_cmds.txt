@@ -1,0 +1,85 @@
+{
+    "_waiting": false, 
+    "queue": [], 
+    "commands": {
+        "reload": {
+            "locked": false, 
+            "name": "reload", 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "editcom": {
+            "locked": false, 
+            "name": "editcom", 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "shutdown": {
+            "locked": false, 
+            "name": "shutdown", 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "addcom": {
+            "locked": false, 
+            "name": "addcom", 
+            "formats": {
+                "__call__": {
+                    "name": "str", 
+                    "cmdlist": "cmdlist", 
+                    "mess": "list(quote)", 
+                    "delays": "list(float)", 
+                    "aliases": "str", 
+                    "sock": "sock", 
+                    "perm": "int", 
+                    "cd": "float"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "poll": {
+            "locked": false, 
+            "name": "poll", 
+            "formats": {
+                "__call__": {
+                    "sock": "sock"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "hello": {
+            "locked": false, 
+            "name": "hello", 
+            "mess": [
+                "hi"
+            ], 
+            "text": true, 
+            "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }
+    }
+}
