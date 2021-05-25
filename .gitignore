@@ -1,0 +1,4 @@
+.env
+*_cmds.txt
+*_pts.txt
+*.pyc
