@@ -286,7 +286,8 @@ def exec_com(s, m, user):
     for arg in inspect.getargspec(curr_cmd)[0]:
         if arg in m[1]:
             params.update({arg:m[1][arg]})
-        elif arg == 'kwargs'
+        elif arg == 'kwargs':
+            pass
         if arg == 'self':
             continue
         islist = re.match(r'list\((.+)\)', fmt[arg])
