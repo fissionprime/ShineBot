@@ -152,7 +152,7 @@ def checkmsg(s, response):
         message = res.group("mess")
         print(username + ": " + message)
     except AttributeError:
-        pass    
+        print("failed to parse message")    
     if cfg.waiting:
         t = time.time()
         if t >= cfg.waiting_msgs[0][0]:

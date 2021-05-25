@@ -30,8 +30,11 @@ while connecting:
     s.send("JOIN {}\r\n".format(CHAN).encode("utf-8"))
     s.send("CAP REQ :twitch.tv/membership\r\n")
     s.send("CAP REQ :twitch.tv/tags\r\n")
-    #s.send("CAP REQ :twitch.tv/commands\r\n")
+    s.send("CAP REQ :twitch.tv/commands\r\n")
     handlemsg.init()
+    print(s)
+    print("Commands Uploaded. Now chatting.")
+    handlemsg.chat(s, "test message")
     buff = ""
     while True:
         r = s.recv(1024)

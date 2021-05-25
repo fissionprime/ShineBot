@@ -1,5 +1,5 @@
 # cfg.py
-HOST = "irc.twitch.tv"              # the Twitch IRC server
+HOST = "irc.chat.twitch.tv"              # the Twitch IRC server
 PORT = 6667                         # always use port 6667!
 NICK = "ShineBot_"            # your Twitch username, lowercase
 PASS = "oauth:tczm9cl69qoy0vp67x5o88qfm4fuq3" # your Twitch OAuth token
