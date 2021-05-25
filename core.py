@@ -45,6 +45,7 @@ while connecting:
     buff = ""
     while True:
         r = s.recv(1024)
+        r = r.decode("utf-8")
         r = r.split("\r\n")
         #print(r)
         if buff: #leftover buffered message that previously wasn't completed
@@ -64,8 +65,8 @@ while connecting:
             else:
                 #handlemsg.checkmsg(s, response)
                 username = re.search(r"\w+", response).group(0) # return the entire match
-                message = CHAT_MSG.sub("", response).encode("utf-8", "ignore")
-                print(username + ": " + message)
+                message = CHAT_MSG.sub("", response)
+                print(username + ": " + message).encode("utf-8")
                 # if re.match(r"!(\w+)", message): #
                 #     chat(test, sock=s)
                 #     thing = cmds.textcommand()
