@@ -10,18 +10,27 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "poll": {
+        "Hi": {
             "locked": false, 
-            "name": "poll", 
+            "name": "hello", 
+            "mess": [], 
+            "text": true, 
+            "delays": [], 
             "formats": {
                 "__call__": {
-                    "sock": "sock"
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
                 }
             }, 
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
-            "aliases": []
+            "aliases": [
+                "Hi"
+            ]
         }, 
         "editcom": {
             "locked": false, 
@@ -33,6 +42,14 @@
                     "strings": "list(str)"
                 }
             }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "shutdown": {
+            "locked": false, 
+            "name": "shutdown", 
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
@@ -58,13 +75,40 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "shutdown": {
+        "poll": {
             "locked": false, 
-            "name": "shutdown", 
+            "name": "poll", 
+            "formats": {
+                "__call__": {
+                    "sock": "sock"
+                }
+            }, 
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
             "aliases": []
+        }, 
+        "hello": {
+            "locked": false, 
+            "name": "hello", 
+            "mess": [], 
+            "text": true, 
+            "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": [
+                "Hi"
+            ]
         }
     }
 }

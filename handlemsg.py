@@ -16,7 +16,7 @@ CHAN = os.getenv("CHAN")
 NICK = os.getenv("NICK")
 ADMINS = os.getenv("ADMINS")
 
-CHAT_MSG=re.compile(r"@badges=(?P<badges>.*?);(?:.*?;)*?display-name=" \
+CHAT_MSG=re.compile(r"(?:.*?;)*?badges=(?P<badges>.*?);(?:.*?;)*?display-name=" \
     r"(?P<usr>\w+);(?:.*?;)*?mod=(?P<mod>\d);(?:.*?;)*?subscriber=" \
     r"(?P<sub>\d);(?:.*?;)*?user-id=(?P<id>\d+);user-type=(?P<type>.*)" \
     r" :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :(?P<mess>.+)")
@@ -158,7 +158,7 @@ def checkmsg(s, response):
         username = res.group("usr")
         usrid = res.group("id")
         message = res.group("mess")
-        print(username + ": " + message)
+        print(username + ": " + message).encode("utf-8")
     except AttributeError:
         print("failed to parse message")    
     if waiting.waiting:
@@ -188,6 +188,7 @@ def checkmsg(s, response):
         try:
             perm = userpermlvl(res)
             args = parsemsg(message)
+            print args
             exec_com(s, args, (username, usrid))
             if waiting.waiting_msgs:
                 waiting.waiting = True
@@ -199,7 +200,7 @@ def checkmsg(s, response):
 
 def parsemsg(r):
     """takes a chat command message and returns a parsed version"""
-    quote = re.compile(r"""\s?((?:".*")|(?:'.*'))\s?""")
+    quote = re.compile(r'(\'|\")(.+?)\1')
     keywords = re.compile(r"\s?(\w+\s?=\s?\w+)\s?")
     kw = {}
     words = []
@@ -215,6 +216,7 @@ def parsemsg(r):
     while i < len(msg): #while loop since changing list elements
         if msg[i].count('\"') == 2 or msg[i].count("\'") == 2: #check matched quotes
             quotes.append(eval(msg.pop(i)))
+            print "quote appended"
         else:
             i += 1
     #split out keywords, pop all elements with '='
@@ -360,3 +362,5 @@ def userpermlvl(match):
     #else permlvl = 0
     return (username, userid, permlvl)
 #pass username along with perm level to function
+
+#def shutdown():

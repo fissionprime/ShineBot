@@ -2,9 +2,22 @@ import time
 import types
 import random
 import json
+from dotenv import load_dotenv
+import os
+import waiting
 #from handlemsg import savecmds
 
 NumberTypes = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
+
+load_dotenv()
+
+CHAN = os.getenv("CHAN")
+NICK = os.getenv("NICK")
+ADMINS = os.getenv("ADMINS")
+
+waiting.waiting_msgs = []
+waiting.waiting = False
+waiting.cmdlist = {}
 
 def chat(sock, msg):
     """
@@ -13,12 +26,12 @@ def chat(sock, msg):
     sock -- the socket over which to send the message
     msg  -- the message to be sent
     """
-    sock.send("PRIVMSG {0} :{1}\n".format(cfg.CHAN, msg).encode("utf-8"))
-    print(cfg.NICK + ": " + str(msg))
+    sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
+    print(NICK + ": " + str(msg))
 
 def savecmds(filename):
-    cmdsdict = {"_waiting": cfg.waiting, "queue": cfg.waiting_msgs, "commands": {}}
-    cmds = cfg.cmdlist.items()
+    cmdsdict = {"_waiting": waiting.waiting, "queue": waiting.waiting_msgs, "commands": {}}
+    cmds = waiting.cmdlist.items()
     for name, cmd in cmds:
         cmdsdict["commands"].update({name: cmd.__dict__})
     with open(filename, 'w') as outfile:
@@ -150,19 +163,19 @@ class addcom(Command):
     def __call__(self, name, mess, cmdlist, sock, delays = None, cd = 0,
         perm = 0, aliases = []):
         try:
-            if cfg.cmdlist.get(name):
+            if waiting.cmdlist.get(name):
                 chat(sock, "Command \"" + name + "\" already exists")
                 return False
             else:
-                cfg.cmdlist.update({name : TextCommand(name, mess, delays,
+                waiting.cmdlist.update({name : TextCommand(name, mess, delays,
                     cd, perm, aliases)})
-                for alias in cfg.cmdlist[name].aliases:
-                    if cfg.cmdlist.get(alias):
+                for alias in waiting.cmdlist[name].aliases:
+                    if waiting.cmdlist.get(alias):
                         chat(sock, "Failed to add alias \"" + alias + "\".\
                          Command already exists")
                     else:
-                        cfg.cmdlist.update({alias : cfg.cmdlist[name]})
-            savecmds(cfg.CHAN[1:] + "_cmds.txt")
+                        waiting.cmdlist.update({alias : waiting.cmdlist[name]})
+            savecmds(CHAN[1:] + "_cmds.txt")
         except InputError:
             chat(sock, "Format error in messages/delays")
 
