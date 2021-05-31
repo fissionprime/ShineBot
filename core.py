@@ -64,9 +64,9 @@ while connecting:
             #and keep and remaining output stored until next response.
             else:
                 handlemsg.checkmsg(s, response)
-                username = re.search(r"\w+", response).group(0) # return the entire match
-                message = CHAT_MSG.sub("", response)
-                print(username + ": " + message).encode("utf-8")
+                #username = re.search(r"\w+", response).group(0) # return the entire match
+                #message = CHAT_MSG.sub("", response)
+                #print(username + ": " + message).encode("utf-8")
                 # if re.match(r"!(\w+)", message): #
                 #     chat(test, sock=s)
                 #     thing = cmds.textcommand()

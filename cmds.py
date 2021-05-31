@@ -144,7 +144,7 @@ class TextCommand(Command):
                             i += 1
                     except IndexError: #queue is empty, so ignore error
                         pass
-                    queue.insert(i, [t, self._name, self.mess[msg_ind + 1]])
+                    queue.insert(i, [t, self.name, self.mess[msg_ind + 1]])
                 self.last_ex = time.time() #update
         else:
             return "cooldown"

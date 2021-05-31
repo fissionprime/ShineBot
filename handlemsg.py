@@ -78,7 +78,7 @@ def init():
                         continue
     except (IOError,ValueError): #commands file is empty or nonexistent
         #dump all the hardcoded commands and include them in new file
-        with open(waiting.CHAN[1:] + "_cmds.txt", 'w') as outfile:
+        with open(CHAN[1:] + "_cmds.txt", 'w') as outfile:
             cmdsdict = {"_waiting": False, "queue": [], "commands": {}}
             classes = pyclbr.readmodule("cmds").items()
             for name, cmd in classes:
@@ -160,7 +160,7 @@ def checkmsg(s, response):
         message = res.group("mess")
         print(username + ": " + message).encode("utf-8")
     except AttributeError:
-        print("failed to parse message")    
+        print("Failed to parse message. This is expected for all non-chat messages")    
     if waiting.waiting:
         t = time.time()
         if t >= waiting.waiting_msgs[0][0]:
@@ -200,7 +200,8 @@ def checkmsg(s, response):
 
 def parsemsg(r):
     """takes a chat command message and returns a parsed version"""
-    quote = re.compile(r'(\'|\")(.+?)\1')
+    quote = re.compile(r"\s?((?:\".*?\")|(?:'.*?'))\s?")
+    #regex for quotes needs adjustment to handle nested parenthesis
     keywords = re.compile(r"\s?(\w+\s?=\s?\w+)\s?")
     kw = {}
     words = []
@@ -214,11 +215,14 @@ def parsemsg(r):
     msg = quote.split(r)
     i = 0
     while i < len(msg): #while loop since changing list elements
-        if msg[i].count('\"') == 2 or msg[i].count("\'") == 2: #check matched quotes
+        quoted = False
+        if msg[i].count('\"') > 1 or msg[i].count('\'') > 1:
+            quoted = True
+        if ((msg[i].count('\"') % 2) == 0 or (msg[i].count("\'") % 2) == 0) and quoted: #check matched quotes
             quotes.append(eval(msg.pop(i)))
-            print "quote appended"
         else:
             i += 1
+
     #split out keywords, pop all elements with '='
     for j,el in enumerate(msg):
         msg[j] = keywords.split(el)
@@ -228,10 +232,12 @@ def parsemsg(r):
         if '=' in msg[i]: #check for keywords
             entry = re.split(r'\s?=\s?',msg.pop(i))
             kw.update({entry[0]:entry[1]}) #add keywords to dict
+            del msg[i]
         elif msg[i] == '' or re.match(r'/s+',msg[i]):
             del msg[i]
         else:
             i += 1
+
     #split according to remaining whitespace
     for j,el in enumerate(msg):
         msg[j] = re.split(r'\s+',el)
@@ -274,15 +280,18 @@ def exec_com(s, m, user):
         #print curr_cmd.__dict__
 
         if curr_cmd.name not in ["addcom", "editcom"]:
-            if len(m[0]) > 1 or m[2]:                    
+            if len(m[0]) > 1 or m[2]:
+            #check if 2nd word preceded by "!"                    
                 if len(m[0]) > 1:
                     secondarycmd = m[0].pop(1)[1:].lower()
+            #if not, secondary command name is first unquoted word
                 elif m[2]:
                     secondarycmd = m[2].pop(0).lower()
+        #add additional words preceded by "!" to "words"
         elif len(m[0]) > 1:
-            m[2].insert(0, m[0][1][1:].lower())
+            m[2].extend(0, m[0][1:][1:].lower())
 
-    except KeyError: #command doesn't exist in 
+    except KeyError: #command doesn't exist in loaded commands
         chat(s, "No command \"" + m[0][0] + "\"")
         return False
     if secondarycmd:
@@ -338,7 +347,7 @@ def exec_com(s, m, user):
             params.update({arg: waiting.cmdlist})
         else: #incorrect format
             continue
-    #print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
+    print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
     if inspect.getargspec(curr_cmd).keywords:
         params.update(m[1])
     result = curr_cmd(**params)

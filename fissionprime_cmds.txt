@@ -10,12 +10,17 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "Hi": {
+        "testcom": {
             "locked": false, 
-            "name": "hello", 
-            "mess": [], 
+            "name": "testcom", 
+            "mess": [
+                "test 1", 
+                "test 2"
+            ], 
             "text": true, 
-            "delays": [], 
+            "delays": [
+                3.0
+            ], 
             "formats": {
                 "__call__": {
                     "queue": "queue", 
@@ -25,31 +30,6 @@
                     "msg_ind": "int"
                 }
             }, 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": [
-                "Hi"
-            ]
-        }, 
-        "editcom": {
-            "locked": false, 
-            "name": "editcom", 
-            "formats": {
-                "__call__": {
-                    "nums": "list(float)", 
-                    "name": "str", 
-                    "strings": "list(str)"
-                }
-            }, 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
-        "shutdown": {
-            "locked": false, 
-            "name": "shutdown", 
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
@@ -75,6 +55,29 @@
             "last_ex": 0, 
             "aliases": []
         }, 
+        "shutdown": {
+            "locked": false, 
+            "name": "shutdown", 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "editcom": {
+            "locked": false, 
+            "name": "editcom", 
+            "formats": {
+                "__call__": {
+                    "nums": "list(float)", 
+                    "name": "str", 
+                    "strings": "list(str)"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
         "poll": {
             "locked": false, 
             "name": "poll", 
@@ -91,7 +94,9 @@
         "hello": {
             "locked": false, 
             "name": "hello", 
-            "mess": [], 
+            "mess": [
+                "Hi"
+            ], 
             "text": true, 
             "delays": [], 
             "formats": {
@@ -106,9 +111,7 @@
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
-            "aliases": [
-                "Hi"
-            ]
+            "aliases": []
         }
     }
 }
