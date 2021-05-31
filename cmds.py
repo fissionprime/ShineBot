@@ -4,7 +4,7 @@ import random
 import json
 from dotenv import load_dotenv
 import os
-import waiting
+#import waiting
 #from handlemsg import savecmds
 
 NumberTypes = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
@@ -15,9 +15,6 @@ CHAN = os.getenv("CHAN")
 NICK = os.getenv("NICK")
 ADMINS = os.getenv("ADMINS")
 
-waiting.waiting_msgs = []
-waiting.waiting = False
-waiting.cmdlist = {}
 
 def chat(sock, msg):
     """
@@ -28,14 +25,6 @@ def chat(sock, msg):
     """
     sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
     print(NICK + ": " + str(msg))
-
-def savecmds(filename):
-    cmdsdict = {"_waiting": waiting.waiting, "queue": waiting.waiting_msgs, "commands": {}}
-    cmds = waiting.cmdlist.items()
-    for name, cmd in cmds:
-        cmdsdict["commands"].update({name: cmd.__dict__})
-    with open(filename, 'w') as outfile:
-        json.dump(cmdsdict, outfile, indent=4)
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -153,8 +142,20 @@ class TextCommand(Command):
         pass
     
 
+def savecmds(filename):
+    import handlemsg
+
+
+    cmdsdict = {"_waiting": handlemsg.waiting, "queue": handlemsg.waiting_msgs, "commands": {}}
+    cmds = handlemsg.cmdlist.items()
+    for name, cmd in cmds:
+        cmdsdict["commands"].update({name: cmd.__dict__})
+    with open(filename, 'w') as outfile:
+        json.dump(cmdsdict, outfile, indent=4)
+
 
 class addcom(Command):
+
     def __init__(self):
         super(addcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "mess":"list(quote)",
@@ -162,19 +163,20 @@ class addcom(Command):
             "cd":"float", "perm":"int", "aliases":"str"}}
     def __call__(self, name, mess, cmdlist, sock, delays = None, cd = 0,
         perm = 0, aliases = []):
+        import handlemsg
         try:
-            if waiting.cmdlist.get(name):
+            if handlemsg.cmdlist.get(name.lower()):
                 chat(sock, "Command \"" + name + "\" already exists")
                 return False
             else:
-                waiting.cmdlist.update({name : TextCommand(name, mess, delays,
+                handlemsg.cmdlist.update({name : TextCommand(name, mess, delays,
                     cd, perm, aliases)})
-                for alias in waiting.cmdlist[name].aliases:
-                    if waiting.cmdlist.get(alias):
+                for alias in handlemsg.cmdlist[name].aliases:
+                    if handlemsg.cmdlist.get(alias):
                         chat(sock, "Failed to add alias \"" + alias + "\".\
                          Command already exists")
                     else:
-                        waiting.cmdlist.update({alias : waiting.cmdlist[name]})
+                        handlemsg.cmdlist.update({alias : handlemsg.cmdlist[name]})
             savecmds(CHAN[1:] + "_cmds.txt")
         except InputError:
             chat(sock, "Format error in messages/delays")
@@ -215,12 +217,14 @@ class poll(Command):
 class reload(Command):
     def __init__(self):
         super(reload, self).__init__()
+        self.perm = 2
     def __call__():
         pass
 
 class shutdown(Command):
     def __init__(self):
         super(shutdown, self).__init__()
+        self.perm = 2
     def __call__():
         pass
 

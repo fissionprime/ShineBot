@@ -1,7 +1,7 @@
 import re
 import socket
 import cmds
-import waiting
+#import waiting
 import json
 import time
 import inspect
@@ -21,24 +21,25 @@ CHAT_MSG=re.compile(r"(?:.*?;)*?badges=(?P<badges>.*?);(?:.*?;)*?display-name=" 
     r"(?P<sub>\d);(?:.*?;)*?user-id=(?P<id>\d+);user-type=(?P<type>.*)" \
     r" :\w+!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :(?P<mess>.+)")
 
-waiting.waiting_msgs = []
-waiting.waiting = False
-waiting.cmdlist = {}
+waiting_msgs = []
+waiting = False
+cmdlist = {}
 
 def init():
-    waiting.waiting_msgs = [] #fmt = [time, name of command = None, "<msg>"]
-    waiting.waiting = False
-    waiting.cmdlist = {}
+    global waiting_msgs #fmt = [time, name of command = None, "<msg>"]
+    global waiting
+    global cmdlist
     try:
+        #cmds.savecmds(CHAN[1:] + "_cmds.txt")
         with open(CHAN[1:] + "_cmds.txt") as file:
             data = json.load(file)
-            waiting.waiting = data["_waiting"]
-            waiting.waiting_msgs = data["queue"]
+            waiting = data["_waiting"]
+            waiting_msgs = data["queue"]
             existingcommands = data["commands"].items()
             print existingcommands
             for name ,com in existingcommands:
                 if com.get("text"):
-                    waiting.cmdlist.update({com["name"] : cmds.TextCommand(com["name"],
+                    cmdlist.update({com["name"] : cmds.TextCommand(com["name"],
                         com["mess"], com["delays"], com["cd"], com["perm"],
                         com["aliases"])})
                 if not com.get("text"):
@@ -50,22 +51,22 @@ def init():
                             for key in dct.keys():
                                 if key not in argspec.args:
                                     del dct[key]
-                        waiting.cmdlist.update({com["name"] :
+                        cmdlist.update({com["name"] :
                             getattr(cmds, com["name"])(**dct)})
                         del dct
                     except AttributeError:
                         pass #no built in com with this name
                 if com.get("locked"):
-                    waiting.cmdlist[com["name"]].locked = True
+                    cmdlist[com["name"]].locked = True
                 for alias in com["aliases"]:
-                    if alias in waiting.cmdlist:
-                        if waiting.cmdlist[alias].get("text"):
-                            waiting.cmdlist.update({alias : waiting.cmdlist[com["name"]]})
+                    if alias in cmdlist:
+                        if cmdlist[alias].get("text"):
+                            cmdlist.update({alias : cmdlist[com["name"]]})
                         classes = pyclbr.readmodule("cmds").items()
             #check for new commands
             classes = pyclbr.readmodule("cmds").items()
             for name, cmd in classes:
-                if name != "TextCommand" and name not in waiting.cmdlist:
+                if name != "TextCommand" and name not in cmdlist:
                     try: #add all classes that inherit from Command
                         #other than TextCommand
                         command = cmd.__dict__["super"][0].__dict__
@@ -73,7 +74,7 @@ def init():
                         while (command["name"] != "Command"):
                             command = command["super"][0]
                         temp = getattr(cmds, name)()
-                        waiting.cmdlist.update({temp.__dict__["name"] : temp})
+                        cmdlist.update({temp.__dict__["name"] : temp})
                     except (AttributeError, TypeError):
                         continue
     except (IOError,ValueError): #commands file is empty or nonexistent
@@ -91,13 +92,15 @@ def init():
                             command = command["super"][0]
                         temp = getattr(cmds, name)()
                         cmdsdict["commands"].update({temp.__dict__["name"] : temp.__dict__})
-                        waiting.cmdlist.update({temp.__dict__["name"] : temp})
+                        cmdlist.update({temp.__dict__["name"] : temp})
                     except (AttributeError, TypeError):
                         continue
             print cmdsdict
             json.dump(cmdsdict, outfile, indent=4)
 
 #import points data up here too
+
+
 
 
 
@@ -152,6 +155,17 @@ def checkmsg(s, response):
     prints any waiting messages, and parses incoming messages
     to determine if they are commands to execute
     """
+
+    global waiting_msgs
+    global waiting
+    global cmdlist
+
+
+    try:
+        pass
+    except KeyboardInterrupt:
+        savecmds(file)
+
     res = re.match(CHAT_MSG, response)
     message = ""
     try:
@@ -160,16 +174,22 @@ def checkmsg(s, response):
         message = res.group("mess")
         print(username + ": " + message).encode("utf-8")
     except AttributeError:
-        print("Failed to parse message. This is expected for all non-chat messages")    
-    if waiting.waiting:
+        #this means the message is a message from the server
+        username = re.search(r"\w+", response).group(0) # return the entire match
+        message = CHAT_MSG.sub("", response)
+        print(username + ": " + message).encode("utf-8")
+
+        #print("Failed to parse message. This is expected for all non-chat messages")    
+    if waiting:
         t = time.time()
-        if t >= waiting.waiting_msgs[0][0]:
-            msg = waiting.waiting_msgs.pop(0)
+        if t >= waiting_msgs[0][0]:
+            msg = waiting_msgs.pop(0)
             if msg[1]:
                 try:
-                    cmd = waiting.cmdlist[msg[1]]
+                    cmd = cmdlist[msg[1]]
+                    print cmd
                     try:
-                        cmd.execute(("ShineBot_", 99999), s, waiting.waiting_msgs, 
+                        cmd.execute(("ShineBot_", 99999), s, waiting_msgs, 
                             msg_ind = cmd.mess.index(msg[2]) + 1, single=False)
                         
                     except ValueError:
@@ -178,8 +198,8 @@ def checkmsg(s, response):
                     pass
             else:
                 chat(s, msg[2])
-            if not waiting.waiting_msgs:
-                waiting.waiting = False
+            if not waiting_msgs:
+                waiting = False
         #check and see if queued up message should be posted
         #if queued message is not from a TextCommand, send it
         #if it is from one, find msg_ind and execute with correct value.
@@ -190,8 +210,8 @@ def checkmsg(s, response):
             args = parsemsg(message)
             print args
             exec_com(s, args, (username, usrid))
-            if waiting.waiting_msgs:
-                waiting.waiting = True
+            if waiting_msgs:
+                waiting = True
         except:
             raise
     #raise KeyboardInterrupt
@@ -275,7 +295,7 @@ def exec_com(s, m, user):
     curr_cmd = None
     #figure out if command exists in cmds file or if is textcommand
     try:
-        curr_cmd = waiting.cmdlist[m[0][0][1:].lower()]
+        curr_cmd = cmdlist[m[0][0][1:].lower()]
         #print m[0][0][1:]
         #print curr_cmd.__dict__
 
@@ -340,11 +360,11 @@ def exec_com(s, m, user):
         elif fmt_this_arg == 'sock':
             params.update({arg: s})
         elif fmt_this_arg == 'queue':
-            params.update({arg: waiting.waiting_msgs})
+            params.update({arg: waiting_msgs})
         elif fmt_this_arg == 'usr':
             params.update({arg: user})
         elif fmt_this_arg == 'cmdlist':
-            params.update({arg: waiting.cmdlist})
+            params.update({arg: cmdlist})
         else: #incorrect format
             continue
     print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
