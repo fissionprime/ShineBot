@@ -10,27 +10,24 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "poll": {
+        "testcom": {
             "locked": false, 
-            "name": "poll", 
+            "name": "testcom", 
+            "mess": [
+                "test 1", 
+                "test 2"
+            ], 
+            "text": true, 
+            "delays": [
+                3.0
+            ], 
             "formats": {
                 "__call__": {
-                    "sock": "sock"
-                }
-            }, 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
-        "editcom": {
-            "locked": false, 
-            "name": "editcom", 
-            "formats": {
-                "__call__": {
-                    "nums": "list(float)", 
-                    "name": "str", 
-                    "strings": "list(str)"
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
                 }
             }, 
             "perm": 0, 
@@ -61,6 +58,56 @@
         "shutdown": {
             "locked": false, 
             "name": "shutdown", 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "editcom": {
+            "locked": false, 
+            "name": "editcom", 
+            "formats": {
+                "__call__": {
+                    "nums": "list(float)", 
+                    "name": "str", 
+                    "strings": "list(str)"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "poll": {
+            "locked": false, 
+            "name": "poll", 
+            "formats": {
+                "__call__": {
+                    "sock": "sock"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "hello": {
+            "locked": false, 
+            "name": "hello", 
+            "mess": [
+                "Hi"
+            ], 
+            "text": true, 
+            "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 

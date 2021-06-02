@@ -1,10 +1,12 @@
 import requests
 import json
-import cfg
 import math
+from dotenv import load_dotenv
+import os
 
-headers = {'Accept':'application/vnd.twitchtv.v5+json', 
-    'Client-ID':'pt3er0okbwntc2ihdnyh72vfsnj0qv'}
+CLID = os.getenv("CLID")
+headers = {'Accept':'application/vnd.twitchtv.v5+json'}
+headers['Client-ID'] = CLID
 
 chat = None
 

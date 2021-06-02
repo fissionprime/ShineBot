@@ -1,11 +1,20 @@
 import time
 import types
 import random
-import cfg
 import json
+from dotenv import load_dotenv
+import os
+#import waiting
 #from handlemsg import savecmds
 
 NumberTypes = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
+
+load_dotenv()
+
+CHAN = os.getenv("CHAN")
+NICK = os.getenv("NICK")
+ADMINS = os.getenv("ADMINS")
+
 
 def chat(sock, msg):
     """
@@ -14,16 +23,8 @@ def chat(sock, msg):
     sock -- the socket over which to send the message
     msg  -- the message to be sent
     """
-    sock.send("PRIVMSG {0} :{1}\n".format(cfg.CHAN, msg).encode("utf-8"))
-    print(cfg.NICK + ": " + str(msg))
-
-def savecmds(filename):
-    cmdsdict = {"_waiting": cfg.waiting, "queue": cfg.waiting_msgs, "commands": {}}
-    cmds = cfg.cmdlist.items()
-    for name, cmd in cmds:
-        cmdsdict["commands"].update({name: cmd.__dict__})
-    with open(filename, 'w') as outfile:
-        json.dump(cmdsdict, outfile, indent=4)
+    sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
+    print(NICK + ": " + str(msg))
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -132,7 +133,7 @@ class TextCommand(Command):
                             i += 1
                     except IndexError: #queue is empty, so ignore error
                         pass
-                    queue.insert(i, [t, self._name, self.mess[msg_ind + 1]])
+                    queue.insert(i, [t, self.name, self.mess[msg_ind + 1]])
                 self.last_ex = time.time() #update
         else:
             return "cooldown"
@@ -141,8 +142,20 @@ class TextCommand(Command):
         pass
     
 
+def savecmds(filename):
+    import handlemsg
+
+
+    cmdsdict = {"_waiting": handlemsg.waiting, "queue": handlemsg.waiting_msgs, "commands": {}}
+    cmds = handlemsg.cmdlist.items()
+    for name, cmd in cmds:
+        cmdsdict["commands"].update({name: cmd.__dict__})
+    with open(filename, 'w') as outfile:
+        json.dump(cmdsdict, outfile, indent=4)
+
 
 class addcom(Command):
+
     def __init__(self):
         super(addcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "mess":"list(quote)",
@@ -150,20 +163,21 @@ class addcom(Command):
             "cd":"float", "perm":"int", "aliases":"str"}}
     def __call__(self, name, mess, cmdlist, sock, delays = None, cd = 0,
         perm = 0, aliases = []):
+        import handlemsg
         try:
-            if cfg.cmdlist.get(name):
+            if handlemsg.cmdlist.get(name.lower()):
                 chat(sock, "Command \"" + name + "\" already exists")
                 return False
             else:
-                cfg.cmdlist.update({name : TextCommand(name, mess, delays,
+                handlemsg.cmdlist.update({name : TextCommand(name, mess, delays,
                     cd, perm, aliases)})
-                for alias in cfg.cmdlist[name].aliases:
-                    if cfg.cmdlist.get(alias):
+                for alias in handlemsg.cmdlist[name].aliases:
+                    if handlemsg.cmdlist.get(alias):
                         chat(sock, "Failed to add alias \"" + alias + "\".\
                          Command already exists")
                     else:
-                        cfg.cmdlist.update({alias : cfg.cmdlist[name]})
-            savecmds(cfg.CHAN[1:] + "_cmds.txt")
+                        handlemsg.cmdlist.update({alias : handlemsg.cmdlist[name]})
+            savecmds(CHAN[1:] + "_cmds.txt")
         except InputError:
             chat(sock, "Format error in messages/delays")
 
@@ -203,12 +217,14 @@ class poll(Command):
 class reload(Command):
     def __init__(self):
         super(reload, self).__init__()
+        self.perm = 2
     def __call__():
         pass
 
 class shutdown(Command):
     def __init__(self):
         super(shutdown, self).__init__()
+        self.perm = 2
     def __call__():
         pass
 

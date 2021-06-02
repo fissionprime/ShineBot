@@ -1,0 +1,5 @@
+.env
+*_cmds.txt
+*_pts.txt
+*.pyc
+waiting_.py
