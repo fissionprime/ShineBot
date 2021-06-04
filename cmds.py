@@ -26,6 +26,28 @@ def chat(sock, msg):
     sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
     print(NICK + ": " + str(msg))
 
+
+def savecmds(filename):
+    import handlemsg
+
+
+    cmdsdict = {"_waiting": handlemsg.waiting, "queue": handlemsg.waiting_msgs, "commands": {}}
+    cmds = handlemsg.cmdlist.items()
+    for name, cmd in cmds:
+        cmdsdict["commands"].update({name: cmd.__dict__})
+    with open(filename, 'w') as outfile:
+        json.dump(cmdsdict, outfile, indent=4)
+
+
+def compareperms(permlvl, user, sock):
+    #user is tuple of (username, id, perm level)
+    allowed = (user[2] >= permlvl) # 's' > 'm' > 'a' is order
+    if not allowed:
+        chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
+        return False
+    else: return True
+
+
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
@@ -83,6 +105,7 @@ class TextCommand(Command):
         self.text = True
         self.mess = mess
         self.delays = delays
+        self.perm = perm
         self.formats = {"__call__":{"user": "usr","sock": "sock", "queue":"queue",
             "msg_ind": "int", "single":"bool"}}
 
@@ -101,14 +124,12 @@ class TextCommand(Command):
 
     def __call__(self, user, sock, queue, msg_ind = None, single = True):
         #user is tuple of (username, id, perm level)
-        allowed = (user >= self.perm) # 's' > 'm' > 'a' is order
+        allowed = (user[2] >= self.perm) # 's' > 'm' > 'a' is order
 
         if time.time() >= (self.last_ex + self.cd): #off cooldown
             if not allowed:
-                print "something"
-                #send message "@user, you do not have permission to
-                #use this command"
-                #return something
+                chat(sock, "@%s, you do not have permission to call this command" % (user[2]))
+                return False
             if not self.delays and msg_ind == None and len(self.mess) != 1:
                 #if no specified delays, no specified message, and multiple
                 #possible messages, randomly send one of them
@@ -137,21 +158,9 @@ class TextCommand(Command):
                 self.last_ex = time.time() #update
         else:
             return "cooldown"
-
-    def add():
-        pass
     
 
-def savecmds(filename):
-    import handlemsg
 
-
-    cmdsdict = {"_waiting": handlemsg.waiting, "queue": handlemsg.waiting_msgs, "commands": {}}
-    cmds = handlemsg.cmdlist.items()
-    for name, cmd in cmds:
-        cmdsdict["commands"].update({name: cmd.__dict__})
-    with open(filename, 'w') as outfile:
-        json.dump(cmdsdict, outfile, indent=4)
 
 
 class addcom(Command):
@@ -160,10 +169,15 @@ class addcom(Command):
         super(addcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "mess":"list(quote)",
             "cmdlist": "cmdlist", "sock":"sock","delays": "list(float)",
-            "cd":"float", "perm":"int", "aliases":"str"}}
-    def __call__(self, name, mess, cmdlist, sock, delays = None, cd = 0,
+            "cd":"float", "perm":"int", "aliases":"str", "user":"usr"}}
+        self.perm = 2
+    def __call__(self, name, mess, cmdlist, sock, user, delays = None, cd = 0,
         perm = 0, aliases = []):
+        #permission level should probably be a kwarg here with defaut value of 0
         import handlemsg
+
+        if not compareperms(self.perm, user, sock): return False
+
         try:
             if handlemsg.cmdlist.get(name.lower()):
                 chat(sock, "Command \"" + name + "\" already exists")
@@ -186,8 +200,11 @@ class editcom(Command):
     def __init__(self):
         super(editcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "strings":"list(str)",
-            "nums":"list(float)"}}
-    def __call__(self, name, strings, nums, **kwargs):
+            "nums":"list(float)","user":"usr"}}
+        self.perm = 2
+    def __call__(self, name, strings, nums, user, **kwargs):
+        #first check permissions
+        if not compareperms(self.perm, user): return False
         #if strings[0] in add, set, del, delete
         types = ["add", "set", "del", "delete"]
         try:
@@ -224,10 +241,16 @@ class reload(Command):
 class shutdown(Command):
     def __init__(self):
         super(shutdown, self).__init__()
+        self.formats = {"__call__":{"user": "usr", "sock":"sock"}}
         self.perm = 2
-    def __call__():
-        pass
+        self.name = "shutdown"
+    def __call__(self, user, sock):
+        #negative permission check
+        if not compareperms(self.perm, user, sock): return False
 
+        savecmds(CHAN[1:] + "_cmds.txt")
+        #save point totals here
+        exit(1)
 #class remind(Command):
 
 #class dice(Command):

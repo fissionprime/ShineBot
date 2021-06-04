@@ -5,7 +5,79 @@
         "reload": {
             "locked": false, 
             "name": "reload", 
-            "perm": 0, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "testcom2": {
+            "locked": false, 
+            "name": "testcom2", 
+            "mess": [
+                "another test command"
+            ], 
+            "text": true, 
+            "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "editcom": {
+            "locked": false, 
+            "name": "editcom", 
+            "formats": {
+                "__call__": {
+                    "user": "usr", 
+                    "nums": "list(float)", 
+                    "name": "str", 
+                    "strings": "list(str)"
+                }
+            }, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "shutdown": {
+            "locked": false, 
+            "name": "shutdown", 
+            "formats": {
+                "__call__": {
+                    "user": "usr"
+                }
+            }, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "addcom": {
+            "locked": false, 
+            "name": "addcom", 
+            "formats": {
+                "__call__": {
+                    "user": "usr", 
+                    "name": "str", 
+                    "cmdlist": "cmdlist", 
+                    "mess": "list(quote)", 
+                    "delays": "list(float)", 
+                    "aliases": "str", 
+                    "sock": "sock", 
+                    "perm": "int", 
+                    "cd": "float"
+                }
+            }, 
+            "perm": 2, 
             "cd": 0, 
             "last_ex": 0, 
             "aliases": []
@@ -28,49 +100,6 @@
                     "sock": "sock", 
                     "user": "usr", 
                     "msg_ind": "int"
-                }
-            }, 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
-        "addcom": {
-            "locked": false, 
-            "name": "addcom", 
-            "formats": {
-                "__call__": {
-                    "name": "str", 
-                    "cmdlist": "cmdlist", 
-                    "mess": "list(quote)", 
-                    "delays": "list(float)", 
-                    "aliases": "str", 
-                    "sock": "sock", 
-                    "perm": "int", 
-                    "cd": "float"
-                }
-            }, 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
-        "shutdown": {
-            "locked": false, 
-            "name": "shutdown", 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
-        "editcom": {
-            "locked": false, 
-            "name": "editcom", 
-            "formats": {
-                "__call__": {
-                    "nums": "list(float)", 
-                    "name": "str", 
-                    "strings": "list(str)"
                 }
             }, 
             "perm": 0, 

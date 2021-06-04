@@ -161,10 +161,6 @@ def checkmsg(s, response):
     global cmdlist
 
 
-    try:
-        pass
-    except KeyboardInterrupt:
-        savecmds(file)
 
     res = re.match(CHAT_MSG, response)
     message = ""
@@ -172,6 +168,7 @@ def checkmsg(s, response):
         username = res.group("usr")
         usrid = res.group("id")
         message = res.group("mess")
+        perm = userpermlvl(res)
         print(username + ": " + message).encode("utf-8")
     except AttributeError:
         #this means the message is a message from the server
@@ -189,7 +186,7 @@ def checkmsg(s, response):
                     cmd = cmdlist[msg[1]]
                     print cmd
                     try:
-                        cmd.execute(("ShineBot_", 99999), s, waiting_msgs, 
+                        cmd.__call__(perm, s, waiting_msgs, 
                             msg_ind = cmd.mess.index(msg[2]) + 1, single=False)
                         
                     except ValueError:
@@ -206,10 +203,9 @@ def checkmsg(s, response):
     com = re.match(r"!(\w+)", message)
     if com:
         try:
-            perm = userpermlvl(res)
             args = parsemsg(message)
             print args
-            exec_com(s, args, (username, usrid))
+            exec_com(s, args, perm)
             if waiting_msgs:
                 waiting = True
         except:
