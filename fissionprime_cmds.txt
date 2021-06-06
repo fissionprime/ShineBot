@@ -48,19 +48,6 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "shutdown": {
-            "locked": false, 
-            "name": "shutdown", 
-            "formats": {
-                "__call__": {
-                    "user": "usr"
-                }
-            }, 
-            "perm": 2, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
         "addcom": {
             "locked": false, 
             "name": "addcom", 
@@ -82,17 +69,30 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "testcom": {
+        "shutdown": {
             "locked": false, 
-            "name": "testcom", 
+            "name": "shutdown", 
+            "formats": {
+                "__call__": {
+                    "sock": "sock", 
+                    "user": "usr"
+                }
+            }, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "testrand": {
+            "locked": false, 
+            "name": "testrand", 
             "mess": [
-                "test 1", 
-                "test 2"
+                "message 1", 
+                "message 2", 
+                "message 3"
             ], 
             "text": true, 
-            "delays": [
-                3.0
-            ], 
+            "delays": [], 
             "formats": {
                 "__call__": {
                     "queue": "queue", 
@@ -104,7 +104,7 @@
             }, 
             "perm": 0, 
             "cd": 0, 
-            "last_ex": 0, 
+            "last_ex": 1623019457.692, 
             "aliases": []
         }, 
         "poll": {
@@ -128,6 +128,31 @@
             ], 
             "text": true, 
             "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "testcom": {
+            "locked": false, 
+            "name": "testcom", 
+            "mess": [
+                "test 1", 
+                "test 2"
+            ], 
+            "text": true, 
+            "delays": [
+                3.0
+            ], 
             "formats": {
                 "__call__": {
                     "queue": "queue", 

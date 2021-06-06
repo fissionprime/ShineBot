@@ -19,9 +19,9 @@ ADMINS = os.getenv("ADMINS")
 def chat(sock, msg):
     """
     Send a chat message to the server.
-    Keyword arguments:
+    Arguments:
     sock -- the socket over which to send the message
-    msg  -- the message to be sent
+    msg (str)  -- the message to be sent
     """
     sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
     print(NICK + ": " + str(msg))
@@ -93,9 +93,9 @@ class TextCommand(Command):
         Attributes:
         name (str): name of command
         mess (list[str]): list of messages. if len>1, len(mess) must
-        be len(delays) + 1
+            be len(delays) + 1
         delays (list[float]): list of delays between messages. if 
-        len>0, len(mess) must be len(delays) + 1			
+            len>0, len(mess) must be len(delays) + 1			
         cd (float): cooldown since last use of command.
         perm (int): permission level required to call command
         """
@@ -123,6 +123,17 @@ class TextCommand(Command):
                                 numbers")
 
     def __call__(self, user, sock, queue, msg_ind = None, single = True):
+        """
+        Calls an existing TextCommand.
+        Arguments:
+        user (str, int, int): tuple of (username, id, perm level)
+        sock (socket): socket providing the chat connection
+        queue: waiting messages list. Handled automatically
+        msg_ind (int): msg index. Used if you wish to call messages
+            out of order, or separately. NOTE: indexed starting with 1
+        single (bool): if true, following messages will NOT be added
+            to the queue. If no specified msg_ind, assumed to be False.
+        """
         #user is tuple of (username, id, perm level)
         allowed = (user[2] >= self.perm) # 's' > 'm' > 'a' is order
 
@@ -133,7 +144,7 @@ class TextCommand(Command):
             if not self.delays and msg_ind == None and len(self.mess) != 1:
                 #if no specified delays, no specified message, and multiple
                 #possible messages, randomly send one of them
-                chat(sock, self.mess[random.randint(0, len(self.mess))])
+                chat(sock, self.mess[random.randrange(0, len(self.mess))])
             else:
                 #message indices start at 1, for ease of chatters
                 if msg_ind == None:
@@ -154,8 +165,8 @@ class TextCommand(Command):
                             i += 1
                     except IndexError: #queue is empty, so ignore error
                         pass
-                    queue.insert(i, [t, self.name, self.mess[msg_ind + 1]])
-                self.last_ex = time.time() #update
+                    queue.insert(i, [[t, self.name, self.mess[msg_ind + 1]], user])
+            self.last_ex = time.time() #update
         else:
             return "cooldown"
     

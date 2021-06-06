@@ -168,7 +168,6 @@ def checkmsg(s, response):
         username = res.group("usr")
         usrid = res.group("id")
         message = res.group("mess")
-        perm = userpermlvl(res)
         print(username + ": " + message).encode("utf-8")
     except AttributeError:
         #this means the message is a message from the server
@@ -178,23 +177,25 @@ def checkmsg(s, response):
 
         #print("Failed to parse message. This is expected for all non-chat messages")    
     if waiting:
+        #this block means a message remained in the queue when shinebot last shut down
         t = time.time()
-        if t >= waiting_msgs[0][0]:
+        if t >= waiting_msgs[0][0][0]:
             msg = waiting_msgs.pop(0)
-            if msg[1]:
+            if msg[0][1]:
                 try:
-                    cmd = cmdlist[msg[1]]
+                    cmd = cmdlist[msg[0][1]]
+                    perm = msg[1]
                     print cmd
                     try:
                         cmd.__call__(perm, s, waiting_msgs, 
-                            msg_ind = cmd.mess.index(msg[2]) + 1, single=False)
+                            msg_ind = cmd.mess.index(msg[0][2]) + 1, single=False)
                         
                     except ValueError:
                         pass
                 except KeyError:
                     pass
             else:
-                chat(s, msg[2])
+                chat(s, msg[0][2])
             if not waiting_msgs:
                 waiting = False
         #check and see if queued up message should be posted
@@ -203,6 +204,7 @@ def checkmsg(s, response):
     com = re.match(r"!(\w+)", message)
     if com:
         try:
+            perm = userpermlvl(res)
             args = parsemsg(message)
             print args
             exec_com(s, args, perm)
