@@ -23,8 +23,11 @@ def chat(sock, msg):
     sock -- the socket over which to send the message
     msg (str)  -- the message to be sent
     """
-    sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
-    print(NICK + ": " + str(msg))
+    sock.send("PRIVMSG {0} :{1}\n".format(CHAN.encode("utf-8"), msg.encode("utf-8")))
+    try:
+        print(NICK + ": " + str(msg))
+    except:
+        print("Failed to print chat message. Likely contained a unicode character.")
 
 
 def savecmds(filename):
@@ -137,6 +140,7 @@ class TextCommand(Command):
         #user is tuple of (username, id, perm level)
         allowed = (user[2] >= self.perm) # 's' > 'm' > 'a' is order
 
+
         if time.time() >= (self.last_ex + self.cd): #off cooldown
             if not allowed:
                 chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
@@ -153,6 +157,7 @@ class TextCommand(Command):
                     single = False
                 msg_ind -= 1
                 try:
+                    print self.mess[msg_ind].encode("utf-8")
                     chat(sock, self.mess[msg_ind])
                 except IndexError:
                     chat(sock, "command \"!%s\" has only %i messages" % (self._name, len(self.mess)))
@@ -189,6 +194,8 @@ class addcom(Command):
 
         if not compareperms(self.perm, user, sock): return False
 
+
+
         try:
             if handlemsg.cmdlist.get(name.lower()):
                 chat(sock, "Command \"" + name + "\" already exists")
@@ -202,7 +209,7 @@ class addcom(Command):
                          Command already exists")
                     else:
                         handlemsg.cmdlist.update({alias : handlemsg.cmdlist[name]})
-                chat(sock, "Command \"" + name + "\" added.")
+                chat(sock, "Command \"" + name + "\" successfully added.")
             savecmds(CHAN[1:] + "_cmds.txt")
         except InputError:
             chat(sock, "Format error in messages/delays")
@@ -212,9 +219,9 @@ class editcom(Command):
     def __init__(self):
         super(editcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "strings":"list(str)",
-            "nums":"list(float)","user":"usr"}}
+            "nums":"list(float)","user":"usr", "sock":"sock"}}
         self.perm = 2
-    def __call__(self, name, strings, nums, user, **kwargs):
+    def __call__(self, name, strings, nums, user, sock, **kwargs):
         """
 
 
@@ -222,7 +229,7 @@ class editcom(Command):
         import handlemsg
 
         #first check permissions
-        if not compareperms(self.perm, user): return False
+        if not compareperms(self.perm, user, sock): return False
 
         #if strings[0] in add, set, del, delete
         types = ["add", "set", "del", "delete", "lock", "alias"]
@@ -234,13 +241,14 @@ class editcom(Command):
                     #delete specified command
                     del handlemsg.cmdlist[name]
                     savecmds(CHAN[1:] + "_cmds.txt")
+                    chat(sock, "Command \"" + name + "\" successfully deleted.")
                     return True
                 else: #set
                 #hasattr to figure out if command has thing trying to change
                 #loop through strings, nums, and then kwargs
                     pass
         except KeyError:
-            chat(s, "No command \"" + m[0][0] + "\"")
+            chat(sock, "No command \"" + m[0][0] + "\"")
             return False
         except:
             pass

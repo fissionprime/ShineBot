@@ -6,10 +6,13 @@
             "locked": false, 
             "name": "test2", 
             "mess": [
-                "test command 2"
+                "test command 2", 
+                "delayed message"
             ], 
             "text": true, 
-            "delays": [], 
+            "delays": [
+                5.0
+            ], 
             "formats": {
                 "__call__": {
                     "queue": "queue", 
@@ -31,6 +34,7 @@
                 "__call__": {
                     "user": "usr", 
                     "nums": "list(float)", 
+                    "sock": "sock", 
                     "name": "str", 
                     "strings": "list(str)"
                 }
@@ -154,6 +158,28 @@
             "last_ex": 0, 
             "aliases": []
         }, 
+        "test": {
+            "locked": false, 
+            "name": "test", 
+            "mess": [
+                "\ud83d\udcaf"
+            ], 
+            "text": true, 
+            "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
         "poll": {
             "locked": false, 
             "name": "poll", 
@@ -188,6 +214,22 @@
             "cd": 0, 
             "last_ex": 0, 
             "aliases": []
-        } 
+        }, 
+        "help": {
+            "locked": false, 
+            "name": "help", 
+            "mess": {}, 
+            "formats": {
+                "__call__": {
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "name": "str"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }
     }
 }

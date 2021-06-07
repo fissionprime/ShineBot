@@ -36,7 +36,6 @@ def init():
             waiting = data["_waiting"]
             waiting_msgs = data["queue"]
             existingcommands = data["commands"].items()
-            print "something"
             print existingcommands
             for name ,com in existingcommands:
                 if com.get("text"):
@@ -129,8 +128,11 @@ def chat(sock, msg):
     sock -- the socket over which to send the message
     msg  -- the message to be sent
     """
-    sock.send("PRIVMSG {0} :{1}\n".format(CHAN, msg).encode("utf-8"))
-    print(NICK + ": " + str(msg))
+    sock.send("PRIVMSG {0} :{1}\n".format(CHAN.encode("utf-8"), msg.encode("utf-8")))
+    try:
+        print(NICK + ": " + str(msg))
+    except:
+        print("Failed to print chat message. Likely contained a unicode character.")
 
 def ban(sock, user):
     """
@@ -327,7 +329,7 @@ def exec_com(s, m, user):
                 params.update({arg: copy.copy(m[2])})
                 del m[2][:]
             elif m[2]:
-                params.update({arg: m[2].pop(0)})
+                params.update({arg: m[2].pop(0).encode("utf-8")})
 
         elif fmt_this_arg == 'float' or fmt_this_arg == 'int':
             if islist:
