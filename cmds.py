@@ -139,7 +139,7 @@ class TextCommand(Command):
 
         if time.time() >= (self.last_ex + self.cd): #off cooldown
             if not allowed:
-                chat(sock, "@%s, you do not have permission to call this command" % (user[2]))
+                chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
                 return False
             if not self.delays and msg_ind == None and len(self.mess) != 1:
                 #if no specified delays, no specified message, and multiple
@@ -184,7 +184,7 @@ class addcom(Command):
         self.perm = 2
     def __call__(self, name, mess, cmdlist, sock, user, delays = None, cd = 0,
         perm = 0, aliases = []):
-        #permission level should probably be a kwarg here with defaut value of 0
+        #permission level should probably be a default value arg here with default value of 0
         import handlemsg
 
         if not compareperms(self.perm, user, sock): return False
@@ -202,6 +202,7 @@ class addcom(Command):
                          Command already exists")
                     else:
                         handlemsg.cmdlist.update({alias : handlemsg.cmdlist[name]})
+                chat(sock, "Command \"" + name + "\" added.")
             savecmds(CHAN[1:] + "_cmds.txt")
         except InputError:
             chat(sock, "Format error in messages/delays")
@@ -214,21 +215,33 @@ class editcom(Command):
             "nums":"list(float)","user":"usr"}}
         self.perm = 2
     def __call__(self, name, strings, nums, user, **kwargs):
+        """
+
+
+        """
+        import handlemsg
+
         #first check permissions
         if not compareperms(self.perm, user): return False
+
         #if strings[0] in add, set, del, delete
-        types = ["add", "set", "del", "delete"]
+        types = ["add", "set", "del", "delete", "lock", "alias"]
         try:
             if strings[0] in types:
                 if strings[0] == "add":
                     pass
                 elif strings[0][:3] == "del":
-                    #delete command if high enough permission
-                    pass
+                    #delete specified command
+                    del handlemsg.cmdlist[name]
+                    savecmds(CHAN[1:] + "_cmds.txt")
+                    return True
                 else: #set
                 #hasattr to figure out if command has thing trying to change
                 #loop through strings, nums, and then kwargs
                     pass
+        except KeyError:
+            chat(s, "No command \"" + m[0][0] + "\"")
+            return False
         except:
             pass
         pass
@@ -237,7 +250,7 @@ class editcom(Command):
 class poll(Command):
     def __init__(self, cd = 0, last = 0, perm = 0, aliases = []):
         super(poll, self).__init__(cd, last, perm, aliases)
-        #self.name = "poll"
+        self.name = "poll"
         self.formats = {"__call__":{"sock": "sock"}}
     def __call__(self, test2, test3 = 0, test = 0):
         print str(test) + " " + str(test2) + " " + str(test3)
@@ -262,7 +275,18 @@ class shutdown(Command):
         savecmds(CHAN[1:] + "_cmds.txt")
         #save point totals here
         exit(1)
-#class remind(Command):
+
+class help(Command):
+    def __init__(self):
+        super(help, self).__init__()
+        self.name = "help"
+        self.formats = {"__call__":{"user":"usr", "name":"str", "sock":"sock"}}
+        self.mess = {}
+    def __call__(self, user, name, sock):
+        if name not in self.mess:
+            chat(sock, "@%s, no help is available for command %s" % (user[0], name))
+        else:
+            chat(sock, self.mess[name])
 
 #class dice(Command):
 

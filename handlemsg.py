@@ -36,6 +36,7 @@ def init():
             waiting = data["_waiting"]
             waiting_msgs = data["queue"]
             existingcommands = data["commands"].items()
+            print "something"
             print existingcommands
             for name ,com in existingcommands:
                 if com.get("text"):
@@ -297,24 +298,13 @@ def exec_com(s, m, user):
         #print m[0][0][1:]
         #print curr_cmd.__dict__
 
-        if curr_cmd.name not in ["addcom", "editcom"]:
-            if len(m[0]) > 1 or m[2]:
-            #check if 2nd word preceded by "!"                    
-                if len(m[0]) > 1:
-                    secondarycmd = m[0].pop(1)[1:].lower()
-            #if not, secondary command name is first unquoted word
-                elif m[2]:
-                    secondarycmd = m[2].pop(0).lower()
-        #add additional words preceded by "!" to "words"
-        elif len(m[0]) > 1:
-            m[2].extend(0, m[0][1:][1:].lower())
+        if len(m[0]) > 1:
+            for word in m[0][1:]:
+                m[2].append(word[1:].lower())
 
     except KeyError: #command doesn't exist in loaded commands
         chat(s, "No command \"" + m[0][0] + "\"")
         return False
-    if secondarycmd:
-        fmt = curr_cmd.formats[secondarycmd]
-        curr_cmd = getattr(curr_cmd, secondarycmd)
     else:
         fmt = curr_cmd.formats["__call__"]
         curr_cmd = getattr(curr_cmd, "__call__")
@@ -322,6 +312,7 @@ def exec_com(s, m, user):
     #pair up parsed values to command args
     for arg in inspect.getargspec(curr_cmd)[0]:
         if arg in m[1]:
+            #pass any non-default keyword assignments
             params.update({arg:m[1][arg]})
         elif arg == 'kwargs':
             pass
@@ -337,6 +328,7 @@ def exec_com(s, m, user):
                 del m[2][:]
             elif m[2]:
                 params.update({arg: m[2].pop(0)})
+
         elif fmt_this_arg == 'float' or fmt_this_arg == 'int':
             if islist:
                 nums = copy.copy(m[3])
@@ -346,30 +338,41 @@ def exec_com(s, m, user):
                 del m[3][:]
             elif m[3]:
                 params.update({arg: eval(fmt_this_arg)(m[3].pop(0))})
+
         elif fmt_this_arg == 'quote':
             if islist:
                 params.update({arg:copy.copy(m[5])})
                 del m[5][:]
             elif m[5]:
                 params.update({arg: m[5].pop(0)})
+
         elif fmt_this_arg == 'flag':
             params.update({arg:copy.copy(m[4])})
             del m[4][:]
+
         elif fmt_this_arg == 'sock':
             params.update({arg: s})
+
         elif fmt_this_arg == 'queue':
             params.update({arg: waiting_msgs})
+
         elif fmt_this_arg == 'usr':
             params.update({arg: user})
+
         elif fmt_this_arg == 'cmdlist':
             params.update({arg: cmdlist})
+
         else: #incorrect format
             continue
-    print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
+
+    #only pass kwargs if the command wants kwargs
     if inspect.getargspec(curr_cmd).keywords:
         params.update(m[1])
+    #TODO: should parsed keywords be actual kwargs, or replace default value args?
+
+    print "executing %s, params: %s" % (curr_cmd.__name__, str(params))
     result = curr_cmd(**params)
-    #handle permissions in here
+    return result
 
 def userpermlvl(match):
     username = match.group("usr")

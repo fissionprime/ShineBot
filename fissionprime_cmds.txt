@@ -2,19 +2,11 @@
     "_waiting": false, 
     "queue": [], 
     "commands": {
-        "reload": {
+        "test2": {
             "locked": false, 
-            "name": "reload", 
-            "perm": 2, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
-        "testcom2": {
-            "locked": false, 
-            "name": "testcom2", 
+            "name": "test2", 
             "mess": [
-                "another test command"
+                "test command 2"
             ], 
             "text": true, 
             "delays": [], 
@@ -27,7 +19,7 @@
                     "msg_ind": "int"
                 }
             }, 
-            "perm": 2, 
+            "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
             "aliases": []
@@ -69,20 +61,6 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "shutdown": {
-            "locked": false, 
-            "name": "shutdown", 
-            "formats": {
-                "__call__": {
-                    "sock": "sock", 
-                    "user": "usr"
-                }
-            }, 
-            "perm": 2, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }, 
         "testrand": {
             "locked": false, 
             "name": "testrand", 
@@ -104,7 +82,76 @@
             }, 
             "perm": 0, 
             "cd": 0, 
-            "last_ex": 1623019457.692, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "reload": {
+            "locked": false, 
+            "name": "reload", 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "testcom2": {
+            "locked": false, 
+            "name": "testcom2", 
+            "mess": [
+                "another test command"
+            ], 
+            "text": true, 
+            "delays": [], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "testcom": {
+            "locked": false, 
+            "name": "testcom", 
+            "mess": [
+                "test 1", 
+                "test 2"
+            ], 
+            "text": true, 
+            "delays": [
+                3.0
+            ], 
+            "formats": {
+                "__call__": {
+                    "queue": "queue", 
+                    "single": "bool", 
+                    "sock": "sock", 
+                    "user": "usr", 
+                    "msg_ind": "int"
+                }
+            }, 
+            "perm": 0, 
+            "cd": 0, 
+            "last_ex": 0, 
+            "aliases": []
+        }, 
+        "shutdown": {
+            "locked": false, 
+            "name": "shutdown", 
+            "formats": {
+                "__call__": {
+                    "sock": "sock", 
+                    "user": "usr"
+                }
+            }, 
+            "perm": 2, 
+            "cd": 0, 
+            "last_ex": 0, 
             "aliases": []
         }, 
         "poll": {
@@ -141,31 +188,6 @@
             "cd": 0, 
             "last_ex": 0, 
             "aliases": []
-        }, 
-        "testcom": {
-            "locked": false, 
-            "name": "testcom", 
-            "mess": [
-                "test 1", 
-                "test 2"
-            ], 
-            "text": true, 
-            "delays": [
-                3.0
-            ], 
-            "formats": {
-                "__call__": {
-                    "queue": "queue", 
-                    "single": "bool", 
-                    "sock": "sock", 
-                    "user": "usr", 
-                    "msg_ind": "int"
-                }
-            }, 
-            "perm": 0, 
-            "cd": 0, 
-            "last_ex": 0, 
-            "aliases": []
-        }
+        } 
     }
 }
