@@ -130,7 +130,7 @@ def chat(sock, msg):
     """
     sock.send("PRIVMSG {0} :{1}\n".format(CHAN.encode("utf-8"), msg.encode("utf-8")))
     try:
-        print(NICK + ": " + str(msg))
+        print(NICK + ": " + msg.encode("utf-8"))
     except:
         print("Failed to print chat message. Likely contained a unicode character.")
 
@@ -295,21 +295,27 @@ def exec_com(s, m, user):
     cmdtype = None
     curr_cmd = None
     #figure out if command exists in cmds file or if is textcommand
-    try:
-        curr_cmd = cmdlist[m[0][0][1:].lower()]
-        #print m[0][0][1:]
-        #print curr_cmd.__dict__
 
-        if len(m[0]) > 1:
-            for word in m[0][1:]:
-                m[2].append(word[1:].lower())
+    curr_cmd = cmdlist.get(m[0][0][1:].lower())
+    #print m[0][0][1:]
+    #print curr_cmd.__dict__
 
-    except KeyError: #command doesn't exist in loaded commands
+    if len(m[0]) > 1:
+        for word in m[0][1:]:
+            m[2].append(word[1:].lower())
+
+    if not curr_cmd:
+        #command not located at top level. Check for aliases.
+        for com in cmdlist.values():
+            if m[0][0][1:].lower() in com.aliases:
+                curr_cmd = com
+    if not curr_cmd:
+        #this means no match in aliases either.
         chat(s, "No command \"" + m[0][0] + "\"")
         return False
-    else:
-        fmt = curr_cmd.formats["__call__"]
-        curr_cmd = getattr(curr_cmd, "__call__")
+
+    fmt = curr_cmd.formats["__call__"]
+    curr_cmd = getattr(curr_cmd, "__call__")
     params = {}
     #pair up parsed values to command args
     for arg in inspect.getargspec(curr_cmd)[0]:

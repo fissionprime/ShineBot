@@ -25,7 +25,7 @@ def chat(sock, msg):
     """
     sock.send("PRIVMSG {0} :{1}\n".format(CHAN.encode("utf-8"), msg.encode("utf-8")))
     try:
-        print(NICK + ": " + str(msg))
+        print(NICK + ": " + msg.encode("utf-8"))
     except:
         print("Failed to print chat message. Likely contained a unicode character.")
 
@@ -49,6 +49,19 @@ def compareperms(permlvl, user, sock):
         chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
         return False
     else: return True
+
+def checkexistence(name):
+    #checks whether a command or alias exists under "name" and returns the command, or False
+    import handlemsg
+    toplevel = handlemsg.cmdlist.get(name)
+    if toplevel:
+        return toplevel
+    else:
+        #name not found at top level. Now check aliases.
+        for com in handlemsg.cmdlist.values():
+            if name in com.aliases:
+                return com
+    return False
 
 
 class Error(Exception):
@@ -157,7 +170,6 @@ class TextCommand(Command):
                     single = False
                 msg_ind -= 1
                 try:
-                    print self.mess[msg_ind].encode("utf-8")
                     chat(sock, self.mess[msg_ind])
                 except IndexError:
                     chat(sock, "command \"!%s\" has only %i messages" % (self._name, len(self.mess)))
@@ -185,7 +197,7 @@ class addcom(Command):
         super(addcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "mess":"list(quote)",
             "cmdlist": "cmdlist", "sock":"sock","delays": "list(float)",
-            "cd":"float", "perm":"int", "aliases":"str", "user":"usr"}}
+            "cd":"float", "perm":"int", "aliases":"list(str)", "user":"usr"}}
         self.perm = 2
     def __call__(self, name, mess, cmdlist, sock, user, delays = None, cd = 0,
         perm = 0, aliases = []):
@@ -194,21 +206,23 @@ class addcom(Command):
 
         if not compareperms(self.perm, user, sock): return False
 
-
+        mess = [m.decode("utf-8") for m in mess]
 
         try:
-            if handlemsg.cmdlist.get(name.lower()):
+            if checkexistence(name):
                 chat(sock, "Command \"" + name + "\" already exists")
                 return False
             else:
                 handlemsg.cmdlist.update({name : TextCommand(name, mess, delays,
-                    cd, perm, aliases)})
-                for alias in handlemsg.cmdlist[name].aliases:
-                    if handlemsg.cmdlist.get(alias):
+                    cd, perm)})
+                for alias in aliases:
+                    alias = alias.lower()
+                    if checkexistence(alias):
                         chat(sock, "Failed to add alias \"" + alias + "\".\
                          Command already exists")
                     else:
-                        handlemsg.cmdlist.update({alias : handlemsg.cmdlist[name]})
+                        print "attempting to add alias"
+                        handlemsg.cmdlist[name].aliases.append(alias)
                 chat(sock, "Command \"" + name + "\" successfully added.")
             savecmds(CHAN[1:] + "_cmds.txt")
         except InputError:
@@ -219,9 +233,9 @@ class editcom(Command):
     def __init__(self):
         super(editcom, self).__init__()
         self.formats = {"__call__":{"name": "str", "strings":"list(str)",
-            "nums":"list(float)","user":"usr", "sock":"sock"}}
+            "nums":"list(float)","user":"usr", "sock":"sock", "mess":"list(quote)"}}
         self.perm = 2
-    def __call__(self, name, strings, nums, user, sock, **kwargs):
+    def __call__(self, name, strings, nums, user, sock, mess=None, **kwargs):
         """
 
 
@@ -231,28 +245,94 @@ class editcom(Command):
         #first check permissions
         if not compareperms(self.perm, user, sock): return False
 
+        #check if command to edit is valid
+        #if 'name' is an alias, set 'command' to its parent command
+        command = checkexistence(name)
+        if not command:
+            #send chat message
+            return False
+
         #if strings[0] in add, set, del, delete
         types = ["add", "set", "del", "delete", "lock", "alias"]
-        try:
-            if strings[0] in types:
-                if strings[0] == "add":
-                    pass
-                elif strings[0][:3] == "del":
-                    #delete specified command
-                    del handlemsg.cmdlist[name]
-                    savecmds(CHAN[1:] + "_cmds.txt")
-                    chat(sock, "Command \"" + name + "\" successfully deleted.")
-                    return True
-                else: #set
-                #hasattr to figure out if command has thing trying to change
-                #loop through strings, nums, and then kwargs
-                    pass
-        except KeyError:
-            chat(sock, "No command \"" + m[0][0] + "\"")
-            return False
-        except:
-            pass
-        pass
+        #try:
+        if strings[0] in types:
+
+            if strings[0] == "add":
+                #check that there is a message passed to the function
+                if not mess:
+                    #if no message provided, only remaining valid call is "add alias"
+                    if len(strings) < 2:
+                        chat(sock, "No message to add")
+                        return False
+                    if strings[1] == "alias":
+                        aliasesadded = []
+                        try:
+                            for alias in strings[2:]:
+                                alias = alias.lower()
+                                if checkexistence(alias):
+                                    chat(sock, "Failed to add alias \"" + alias + "\". Command already exists")
+                                else:
+                                    command.aliases.append(alias)
+                                    aliasesadded.append(alias)
+                            if aliasesadded:
+                                chat(sock, "Added aliases " + str(aliasesadded) + " successfully.")
+                        except UnicodeDecodeError, UnicodeEncodeError:
+                            chat(sock, "Valid aliases may not contain unicode characters")
+                            return False
+                        except IndexError:
+                            chat(sock, "No aliases supplied")
+                        else:
+                            savecmds(CHAN[1:] + "_cmds.txt")
+                            return True
+                    chat(sock, "Unable to edit command. Invalid information supplied")
+                    return False
+
+                if command.delays:
+                    #check if 'delay' was a keyword passed to function
+                    #add messages here
+                    if kwargs['delay']:
+                        pass
+
+            elif strings[0][:3] == "del":
+                print "should try to delete"
+                print command.name
+                #check if deleting command or alias
+                if len(strings) > 1:
+                    #we don't want to delete entire command if someone typos "alias"
+                    #so we fail gracefully if there are extra words that do not match "alias"
+                    if strings[1] == "alias":
+                        pass
+                    chat(sock, "As a preventative measure, deleting commands requires exact syntax.\
+                        \"!editcom <command> del \"")
+                    return False
+                #delete specified command
+                print "attempting to delete command"
+                del handlemsg.cmdlist[command.name]
+                savecmds(CHAN[1:] + "_cmds.txt")
+                chat(sock, "Command \"" + name + "\" successfully deleted.")
+                return True
+
+            elif strings[0] == "set": #set
+            #hasattr to figure out if command has thing trying to change
+            #loop through strings, nums, and then kwargs
+            #'set' needs to be able to change messages, delays, perms
+                pass
+
+            elif strings[0] == "lock": #lock
+                pass
+
+            elif strings[0] == "alias":
+                pass
+
+            else:
+                #handle invalid input
+                pass
+        # except KeyError:
+        #     chat(sock, "No command \"" + m[0][0] + "\"")
+        #     return False
+        # except:
+        #     pass
+        # pass
     #def editmsg(self, msg_ind = None):
 
 class poll(Command):
