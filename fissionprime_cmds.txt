@@ -25,9 +25,7 @@
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
-            "aliases": [
-                "alias2"
-            ]
+            "aliases": []
         }, 
         "editcom": {
             "locked": false, 
@@ -112,7 +110,7 @@
             }, 
             "perm": 0, 
             "cd": 0, 
-            "last_ex": 1623113528.155, 
+            "last_ex": 0, 
             "aliases": [
                 "uiop"
             ]

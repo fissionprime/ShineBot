@@ -63,6 +63,23 @@ def checkexistence(name):
                 return com
     return False
 
+def checkdelayvalidity(textcom):
+    if textcom.delays and textcom.mess and (len(textcom.mess) - 1 != 
+        len(textcom.delays)):
+        raise InputError("# of messages and delays do not match")
+    if textcom.mess:
+        for elem in textcom.mess:
+            if not isinstance(elem, basestring):
+                raise InputError("messages are not all strings")
+            if textcom.delays:
+                for elem in textcom.delays:
+                    if not isinstance(elem, NumberTypes):
+                        raise InputError("delays are not all valid\
+                            numbers")
+
+    
+
+
 
 class Error(Exception):
     """Base class for exceptions in this module."""
@@ -125,18 +142,9 @@ class TextCommand(Command):
         self.formats = {"__call__":{"user": "usr","sock": "sock", "queue":"queue",
             "msg_ind": "int", "single":"bool"}}
 
-        if self.delays and self.mess and (len(self.mess) - 1 != 
-            len(self.delays)):
-            raise InputError("# of messages and delays do not match")
-        if self.mess:
-            for elem in self.mess:
-                if not isinstance(elem, basestring):
-                    raise InputError("messages are not all strings")
-                if self.delays:
-                    for elem in self.delays:
-                        if not isinstance(elem, NumberTypes):
-                            raise InputError("delays are not all valid\
-                                numbers")
+        checkdelayvalidity(self)
+
+
 
     def __call__(self, user, sock, queue, msg_ind = None, single = True):
         """
@@ -242,6 +250,78 @@ class editcom(Command):
         """
         import handlemsg
 
+
+
+
+        #define some subroutines
+        def addalias(sock, command, aliases):
+            aliasesadded = []
+            try:
+                for alias in aliases:
+                    alias = alias.lower()
+                    if checkexistence(alias):
+                        chat(sock, "Failed to add alias \"" + alias + "\". Command already exists")
+                    elif alias == 'all':
+                        chat(sock, "Failed to add alias \"" + alias + "\". \"all\" is not an allowed alias")
+                    else:
+                        command.aliases.append(alias)
+                        aliasesadded.append(alias)
+                if aliasesadded:
+                    chat(sock, "Added aliases " + str(aliasesadded) + " successfully.")
+            except UnicodeDecodeError, UnicodeEncodeError:
+                chat(sock, "Valid aliases may not contain unicode characters")
+                return False
+            except IndexError:
+                chat(sock, "No aliases supplied")
+                return False
+            else:
+                savecmds(CHAN[1:] + "_cmds.txt")
+                return True
+
+        def deletealias(sock, command, aliases):
+            aliasesdeleted = []
+            try:
+                for alias in aliases:
+                    alias = alias.lower()
+                    if alias == 'all':
+                        #delete all remaining eliases
+                        aliasesdeleted.extend(command.aliases)
+                        command.aliases = []
+                        if aliasesdeleted:
+                            chat(sock, "Deleted aliases " + str(aliasesdeleted) + " successfully.")
+                        savecmds(CHAN[1:] + "_cmds.txt")
+                        return True
+                    elif command != checkexistence(alias):
+                        chat(sock, "Failed to delete alias \"" + alias + "\". This alias belongs to a different command")
+                    else:
+                        res = command.aliases.remove(alias)
+                        aliasesdeleted.append(alias)
+                if aliasesdeleted:
+                    chat(sock, "Deleted aliases " + str(aliasesdeleted) + " successfully.")
+            except UnicodeDecodeError, UnicodeEncodeError:
+                chat(sock, "Valid aliases may not contain unicode characters")
+                return False
+            except IndexError:
+                chat(sock, "No aliases supplied")
+                return False
+            else:
+                savecmds(CHAN[1:] + "_cmds.txt")
+                return True
+
+        def addmsg(sock, command, m, delay=None, ind=None):
+            #add message to a command
+            if not isinstance(command, TextCommand):
+                pass
+            pass
+
+        def delmsg(sock, command, ind):
+            if not isinstance(command, TextCommand):
+                pass
+            pass
+
+
+
+
         #first check permissions
         if not compareperms(self.perm, user, sock): return False
 
@@ -265,25 +345,9 @@ class editcom(Command):
                         chat(sock, "No message to add")
                         return False
                     if strings[1] == "alias":
-                        aliasesadded = []
-                        try:
-                            for alias in strings[2:]:
-                                alias = alias.lower()
-                                if checkexistence(alias):
-                                    chat(sock, "Failed to add alias \"" + alias + "\". Command already exists")
-                                else:
-                                    command.aliases.append(alias)
-                                    aliasesadded.append(alias)
-                            if aliasesadded:
-                                chat(sock, "Added aliases " + str(aliasesadded) + " successfully.")
-                        except UnicodeDecodeError, UnicodeEncodeError:
-                            chat(sock, "Valid aliases may not contain unicode characters")
-                            return False
-                        except IndexError:
-                            chat(sock, "No aliases supplied")
-                        else:
-                            savecmds(CHAN[1:] + "_cmds.txt")
-                            return True
+                        result = addalias(sock, command, strings[2:])
+                        return result
+
                     chat(sock, "Unable to edit command. Invalid information supplied")
                     return False
 
@@ -301,16 +365,27 @@ class editcom(Command):
                     #we don't want to delete entire command if someone typos "alias"
                     #so we fail gracefully if there are extra words that do not match "alias"
                     if strings[1] == "alias":
+                        result = deletealias(sock, command, strings[2:])
+                        return result
+                    elif strings[1] in ['m', 'mess', 'message']:
+                        #add messages here
                         pass
                     chat(sock, "As a preventative measure, deleting commands requires exact syntax.\
-                        \"!editcom <command> del \"")
+                        \"!editcom <command> del\" deletes the whole command. \
+                        \"!editcom <command> del alias <alias1> <alias2>...\" deletes all provided aliases \
+                        (replacing <alias> with \"all\" deletes all existing aliases)")
+
                     return False
-                #delete specified command
-                print "attempting to delete command"
-                del handlemsg.cmdlist[command.name]
-                savecmds(CHAN[1:] + "_cmds.txt")
-                chat(sock, "Command \"" + name + "\" successfully deleted.")
-                return True
+                if nums:
+                    #delete message at specified index
+                    pass
+                else:
+                    #delete specified command entirely if no additional args provided
+                    print "attempting to delete command"
+                    del handlemsg.cmdlist[command.name]
+                    savecmds(CHAN[1:] + "_cmds.txt")
+                    chat(sock, "Command \"" + name + "\" successfully deleted.")
+                    return True
 
             elif strings[0] == "set": #set
             #hasattr to figure out if command has thing trying to change
@@ -326,6 +401,7 @@ class editcom(Command):
 
             else:
                 #handle invalid input
+                #reaching here means strings[0] not in types
                 pass
         # except KeyError:
         #     chat(sock, "No command \"" + m[0][0] + "\"")
