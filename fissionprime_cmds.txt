@@ -25,7 +25,10 @@
             "perm": 0, 
             "cd": 0, 
             "last_ex": 0, 
-            "aliases": []
+            "aliases": [
+                "test3", 
+                "test4"
+            ]
         }, 
         "editcom": {
             "locked": false, 
@@ -45,13 +48,20 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "shutdown": {
+        "addcom": {
             "locked": false, 
-            "name": "shutdown", 
+            "name": "addcom", 
             "formats": {
                 "__call__": {
+                    "user": "usr", 
+                    "name": "str", 
+                    "cmdlist": "cmdlist", 
+                    "mess": "list(quote)", 
+                    "delays": "list(float)", 
+                    "aliases": "list(str)", 
                     "sock": "sock", 
-                    "user": "usr"
+                    "perm": "int", 
+                    "cd": "float"
                 }
             }, 
             "perm": 2, 
@@ -162,20 +172,13 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "addcom": {
+        "shutdown": {
             "locked": false, 
-            "name": "addcom", 
+            "name": "shutdown", 
             "formats": {
                 "__call__": {
-                    "user": "usr", 
-                    "name": "str", 
-                    "cmdlist": "cmdlist", 
-                    "mess": "list(quote)", 
-                    "delays": "list(float)", 
-                    "aliases": "list(str)", 
                     "sock": "sock", 
-                    "perm": "int", 
-                    "cd": "float"
+                    "user": "usr"
                 }
             }, 
             "perm": 2, 

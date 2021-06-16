@@ -4,6 +4,8 @@ import random
 import json
 from dotenv import load_dotenv
 import os
+from boltons.funcutils import wraps
+from inspect import getargspec
 #import waiting
 #from handlemsg import savecmds
 
@@ -42,13 +44,34 @@ def savecmds(filename):
         json.dump(cmdsdict, outfile, indent=4)
 
 
-def compareperms(permlvl, user, sock):
-    #user is tuple of (username, id, perm level)
-    allowed = (user[2] >= permlvl) # 's' > 'm' > 'a' is order
-    if not allowed:
-        chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
-        return False
-    else: return True
+def checkperms(func):
+    #decorator to check user permission level before command execution
+    #note that user is tuple of (username, id, perm level)
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        argspec = getargspec(func)
+        arg = argspec[0]
+        if 'user' and 'sock' in arg:
+            #NOTE: socket and user arguments must be named 'sock' and 'user'
+            #in all methods which will be decorated
+            induser = arg.index('user') - 1 #ignore 'self'
+            indsock = arg.index('sock') - 1
+            user = args[induser]
+            sock = args[indsock]
+            print user
+            userperm = user[2]
+            print userperm, self.perm
+            if userperm >= self.perm:
+                #user is permitted to use command
+                print "I also got other args:", args, kwargs
+                func(self, *args, **kwargs)
+            else:
+                chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
+                return False
+    return wrapper
+
+
+
 
 def checkexistence(name):
     #checks whether a command or alias exists under "name" and returns the command, or False
@@ -145,7 +168,7 @@ class TextCommand(Command):
         checkdelayvalidity(self)
 
 
-
+    @checkperms
     def __call__(self, user, sock, queue, msg_ind = None, single = True):
         """
         Calls an existing TextCommand.
@@ -158,14 +181,9 @@ class TextCommand(Command):
         single (bool): if true, following messages will NOT be added
             to the queue. If no specified msg_ind, assumed to be False.
         """
-        #user is tuple of (username, id, perm level)
-        allowed = (user[2] >= self.perm) # 's' > 'm' > 'a' is order
 
 
         if time.time() >= (self.last_ex + self.cd): #off cooldown
-            if not allowed:
-                chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
-                return False
             if not self.delays and msg_ind == None and len(self.mess) != 1:
                 #if no specified delays, no specified message, and multiple
                 #possible messages, randomly send one of them
@@ -207,12 +225,15 @@ class addcom(Command):
             "cmdlist": "cmdlist", "sock":"sock","delays": "list(float)",
             "cd":"float", "perm":"int", "aliases":"list(str)", "user":"usr"}}
         self.perm = 2
+
+    @checkperms
     def __call__(self, name, mess, cmdlist, sock, user, delays = None, cd = 0,
         perm = 0, aliases = []):
         #permission level should probably be a default value arg here with default value of 0
         import handlemsg
 
-        if not compareperms(self.perm, user, sock): return False
+        #old permission check
+        #if not compareperms(self.perm, user, sock): return False
 
         mess = [m.decode("utf-8") for m in mess]
 
@@ -243,6 +264,7 @@ class editcom(Command):
         self.formats = {"__call__":{"name": "str", "strings":"list(str)",
             "nums":"list(float)","user":"usr", "sock":"sock", "mess":"list(quote)"}}
         self.perm = 2
+    @checkperms
     def __call__(self, name, strings, nums, user, sock, mess=None, **kwargs):
         """
 
@@ -416,6 +438,8 @@ class poll(Command):
         super(poll, self).__init__(cd, last, perm, aliases)
         self.name = "poll"
         self.formats = {"__call__":{"sock": "sock"}}
+
+    @checkperms
     def __call__(self, test2, test3 = 0, test = 0):
         print str(test) + " " + str(test2) + " " + str(test3)
 
@@ -423,7 +447,9 @@ class reload(Command):
     def __init__(self):
         super(reload, self).__init__()
         self.perm = 2
-    def __call__():
+
+    @checkperms
+    def __call__(self):
         pass
 
 class shutdown(Command):
@@ -432,10 +458,9 @@ class shutdown(Command):
         self.formats = {"__call__":{"user": "usr", "sock":"sock"}}
         self.perm = 2
         self.name = "shutdown"
-    def __call__(self, user, sock):
-        #negative permission check
-        if not compareperms(self.perm, user, sock): return False
 
+    @checkperms
+    def __call__(self, user, sock):
         savecmds(CHAN[1:] + "_cmds.txt")
         #save point totals here
         exit(1)
@@ -446,6 +471,8 @@ class help(Command):
         self.name = "help"
         self.formats = {"__call__":{"user":"usr", "name":"str", "sock":"sock"}}
         self.mess = {}
+
+    @checkperms
     def __call__(self, user, name, sock):
         if name not in self.mess:
             chat(sock, "@%s, no help is available for command %s" % (user[0], name))
