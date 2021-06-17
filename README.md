@@ -4,5 +4,7 @@ The project was put on the backburner ~August 2017, and I am now aiming to finis
 ShineBot includes functionality for text-based commands (both single and multiple message), time-based cooldowns for chat commands, user permission levels, and a points system for chatters (since implemented as native functionality on twitch).
 
 Packages Used:
+
 boltons: https://github.com/mahmoud/boltons/blob/master/docs/index.rst
+
 python-dotenv: https://pypi.org/project/python-dotenv/
