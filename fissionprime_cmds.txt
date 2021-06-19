@@ -7,11 +7,15 @@
             "name": "test2", 
             "mess": [
                 "test command 2", 
-                "delayed message"
+                "delayed message", 
+                "third message", 
+                "one more message"
             ], 
             "text": true, 
             "delays": [
-                5.0
+                5.0, 
+                3, 
+                4
             ], 
             "formats": {
                 "__call__": {
@@ -48,20 +52,13 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "addcom": {
+        "shutdown": {
             "locked": false, 
-            "name": "addcom", 
+            "name": "shutdown", 
             "formats": {
                 "__call__": {
-                    "user": "usr", 
-                    "name": "str", 
-                    "cmdlist": "cmdlist", 
-                    "mess": "list(quote)", 
-                    "delays": "list(float)", 
-                    "aliases": "list(str)", 
                     "sock": "sock", 
-                    "perm": "int", 
-                    "cd": "float"
+                    "user": "usr"
                 }
             }, 
             "perm": 2, 
@@ -172,13 +169,20 @@
             "last_ex": 0, 
             "aliases": []
         }, 
-        "shutdown": {
+        "addcom": {
             "locked": false, 
-            "name": "shutdown", 
+            "name": "addcom", 
             "formats": {
                 "__call__": {
+                    "user": "usr", 
+                    "name": "str", 
+                    "cmdlist": "cmdlist", 
+                    "mess": "list(quote)", 
+                    "delays": "list(float)", 
+                    "aliases": "list(str)", 
                     "sock": "sock", 
-                    "user": "usr"
+                    "perm": "int", 
+                    "cd": "float"
                 }
             }, 
             "perm": 2, 

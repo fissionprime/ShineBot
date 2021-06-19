@@ -60,10 +60,8 @@ def checkperms(func):
             sock = args[indsock]
             print user
             userperm = user[2]
-            print userperm, self.perm
             if userperm >= self.perm:
                 #user is permitted to use command
-                print "I also got other args:", args, kwargs
                 func(self, *args, **kwargs)
             else:
                 chat(sock, "@%s, you do not have permission to call this command" % (user[0]))
@@ -330,11 +328,35 @@ class editcom(Command):
                 savecmds(CHAN[1:] + "_cmds.txt")
                 return True
 
-        def addmsg(sock, command, m, delay=None, ind=None):
+        def addmsg(sock, command, m, delay=None):
             #add message to a command
+            if not m:
+                chat(sock, "No message supplied")
+                return False
             if not isinstance(command, TextCommand):
-                pass
-            pass
+                chat(sock, "Messages can only be added to text-based commands.")
+                return False
+            if delay == None:
+                if command.delays:
+                    chat(sock, "to add a message to \"!%s\" you must include an associated time delay." % (command.name))
+                    return False
+                else:
+                    #command has no associated delays
+                    command.mess.append(m)
+                    chat(sock, "Command \"!%s\" edited successfully. Added message \"%s\" at index %i" % (command.name, m, len(command.mess)))
+                    return True
+            elif delay >= 0:
+                if not command.delays:
+                    chat(sock, "Command \"!%s\" does not support delayed messages." % (command.name))
+                    return False
+                else:
+                    command.mess.append(m)
+                    command.delays.append(delay)
+                    chat(sock, "Command \"!%s\" edited successfully. Added message \"%s\" with delay %ss" %(command.name, m, str(delay)))
+                    return True
+
+
+
 
         def delmsg(sock, command, ind):
             if not isinstance(command, TextCommand):
@@ -344,8 +366,6 @@ class editcom(Command):
 
 
 
-        #first check permissions
-        if not compareperms(self.perm, user, sock): return False
 
         #check if command to edit is valid
         #if 'name' is an alias, set 'command' to its parent command
@@ -375,9 +395,43 @@ class editcom(Command):
 
                 if command.delays:
                     #check if 'delay' was a keyword passed to function
-                    #add messages here
-                    if kwargs['delay']:
-                        pass
+                    if 'delay' in kwargs:
+                        if (type(kwargs['delay']) != list) and (type(kwargs['delay']) != tuple):
+                            if (type(kwargs['delay']) == int) or (type(kwargs['delay']) == float):
+                                if len(mess) == 1:
+                                    addmsg(sock, command, mess[0], kwargs['delay'])
+                            else:
+                                chat(sock, "Delay must be a number.")
+                                return False
+                        else:
+                            #delay is a list or tuple
+                            if len(mess) == len(kwargs['delay']):
+                                for i in range(len(mess)):
+                                    addmsg(sock, command, mess[i], kwargs['delay'][i])
+                                return True
+                            else:
+                                chat(sock, "Failed to edit \"!%s\": number of messages and delays provided must match." % (command.name))
+                                return False
+                    else:
+                        #if delays supplied as numbers, and not a kwarg
+                        #check that # of delays and # of messages equal
+                        if len(nums) == len(mess):
+                            for i in range(len(mess)):
+                                addmsg(sock, command, mess[i], nums[i])
+                            return True
+                        else:
+                            chat(sock, "Failed to edit \"!%s\": number of messages and delays provided must match." % (command.name))
+                            return False
+                else:
+                    #command does not use delays
+                    if ('delay' in kwargs) or bool(nums):
+                        #addmsg could also handle error message, but easier not to process delays since their values are irrelevant
+                        chat(sock, "Command \"!%s\" does not support delayed messages." % (command.name))
+                        return False
+                    else:
+                        for i in range(len(mess)):
+                            addmsg(sock, command, mess[i])
+                        return True
 
             elif strings[0][:3] == "del":
                 print "should try to delete"

@@ -223,7 +223,10 @@ def parsemsg(r):
     """takes a chat command message and returns a parsed version"""
     quote = re.compile(r"\s?((?:\".*?\")|(?:'.*?'))\s?")
     #regex for quotes needs adjustment to handle nested parenthesis
-    keywords = re.compile(r"\s?(\w+\s?=\s?\w+)\s?")
+    #datastruct pulls out lists and tuples as the value of a kwarg
+    datastruct = r"(?:(?:\[\s*\w+\.?\w*\s*(?:,\s*\w+\.?\w*\s*)*\])|(?:\(\s*\w+\.?\w*\s*(?:,\s*\w+\.?\w*\s*)*\))|)"
+    keywords = re.compile(r"\s?(\w+\s?=\s?"+ datastruct + r")\s?")
+    
     kw = {}
     words = []
     nums = []
@@ -252,9 +255,13 @@ def parsemsg(r):
     while i < len(msg): #while loop since changing list elements
         if '=' in msg[i]: #check for keywords
             entry = re.split(r'\s?=\s?',msg.pop(i))
+            try:
+                entry[1] = eval(entry[1])
+            except SyntaxError:
+                print "Failed to add keyword. Unable to evaluate string " + entry[1]
             kw.update({entry[0]:entry[1]}) #add keywords to dict
             del msg[i]
-        elif msg[i] == '' or re.match(r'/s+',msg[i]):
+        elif msg[i] == '' or re.match(r'/s+',msg[i]) or msg[i] == None:
             del msg[i]
         else:
             i += 1
