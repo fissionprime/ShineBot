@@ -333,6 +333,8 @@ class editcom(Command):
             if not m:
                 chat(sock, "No message supplied")
                 return False
+            #message needs to be a unicode, since it passed as 'str'
+            m = m.decode("utf-8")
             if not isinstance(command, TextCommand):
                 chat(sock, "Messages can only be added to text-based commands.")
                 return False
@@ -344,6 +346,7 @@ class editcom(Command):
                     #command has no associated delays
                     command.mess.append(m)
                     chat(sock, "Command \"!%s\" edited successfully. Added message \"%s\" at index %i" % (command.name, m, len(command.mess)))
+                    savecmds(CHAN[1:] + "_cmds.txt")
                     return True
             elif delay >= 0:
                 if not command.delays:
@@ -353,17 +356,73 @@ class editcom(Command):
                     command.mess.append(m)
                     command.delays.append(delay)
                     chat(sock, "Command \"!%s\" edited successfully. Added message \"%s\" with delay %ss" %(command.name, m, str(delay)))
+                    savecmds(CHAN[1:] + "_cmds.txt")
                     return True
 
 
 
 
         def delmsg(sock, command, ind):
+            #check if command is a text command
             if not isinstance(command, TextCommand):
-                pass
-            pass
+                deletionhelp(sock)
+            if ind > len(command.mess):
+                chat(sock, "Can't delete message at index %i. \"!%s\" only has %i associated messages" % (ind, command.name, len(command.mess)))
+                chat(sock, "Note: message indices for text commands start at 1")
+                return False
+            if ind <= 0:
+                chat(sock, "Can't delete message at index %i. Message indices for text commands start at 1" % (ind))
+                return False
+            else:
+                #ind is a natural number not exceeding the number of messages in "command"
+                rem_delay = None
+                rem_mess = command.mess.pop(ind-1)
+                if command.delays:
+                    #bool(command.delays) evals to True, i.e. delays list is non-empty
+                    if (len(command.delays) + 1) == ind:
+                        #removing last message is a special case
+                        rem_delay = command.delays.pop()
+                    else:
+                        rem_delay = command.delays.pop(ind-1)
+                    chat(sock, "Deleted message \"%s\" at index %i with associated delay %.1f" % (rem_mess, ind, rem_delay))
+                    savecmds(CHAN[1:] + "_cmds.txt")
+                    return True
+                chat(sock, "Deleted message \"%s\" at index %i" % (rem_mess, ind))
+                savecmds(CHAN[1:] + "_cmds.txt")
+                return True
 
+        def removedups(l):
+            #delete all duplicate elements in list l, keeping the first instance of each number
+            ind1 = 0
+            while ind1 < len(l):
+                ind2 = ind1+1
+                while ind2 < len(l):
+                    if l[ind2] == nums[ind1]:
+                        l.pop(ind2)
+                    ind2 += 1
+                ind1 += 1
+            return l
 
+        def transformindices(l):
+            #transform indices so we can delete multiple messages consecutively
+            for i in range(len(l) - 1, -1, -1):
+                modifier = 0
+                for (pos,val) in enumerate(l[:i]):
+                    if val < l[i]:
+                        #since deletion occurs in order, every lower indexed message deleted shifts
+                        #the indices of messages which are not yet deleted down by 1.
+                        #modifier tallies up how many preceding indices are lower than current index
+                        modifier += 1
+                #then modifies the index by the appropriate amount
+                l[i] -= modifier
+            return l
+
+        def deletionhelp(sock):
+            chat(sock, "As a precautionary measure, deleting commands requires exact syntax. \
+                \"!editcom <command> del <i>\" deletes the message at index i if \"command\" is a text command. \
+                \"!editcom <command> del\" deletes the whole command. \
+                \"!editcom <command> del alias <alias1> <alias2>...\" deletes all provided aliases \
+                (replacing <alias> with \"all\" deletes all existing aliases)")
 
 
 
@@ -373,6 +432,10 @@ class editcom(Command):
         if not command:
             #send chat message
             return False
+
+        if command.name == 'help':
+            #we handle the help command differently since it stores messages in a dict
+            pass
 
         #if strings[0] in add, set, del, delete
         types = ["add", "set", "del", "delete", "lock", "alias"]
@@ -393,45 +456,59 @@ class editcom(Command):
                     chat(sock, "Unable to edit command. Invalid information supplied")
                     return False
 
-                if command.delays:
-                    #check if 'delay' was a keyword passed to function
-                    if 'delay' in kwargs:
-                        if (type(kwargs['delay']) != list) and (type(kwargs['delay']) != tuple):
-                            if (type(kwargs['delay']) == int) or (type(kwargs['delay']) == float):
-                                if len(mess) == 1:
-                                    addmsg(sock, command, mess[0], kwargs['delay'])
+                if command.text:
+                    if command.delays: #if delays is empty, evaluates to false
+                        #check if 'delay' was a keyword passed to function
+                        if 'delay' in kwargs:
+                            if (type(kwargs['delay']) != list) and (type(kwargs['delay']) != tuple):
+                                if (type(kwargs['delay']) == int) or (type(kwargs['delay']) == float):
+                                    if len(mess) == 1:
+                                        result = addmsg(sock, command, mess[0], kwargs['delay'])
+                                        return result
+                                else:
+                                    chat(sock, "Delay must be a number.")
+                                    return False
                             else:
-                                chat(sock, "Delay must be a number.")
-                                return False
+                                #delay is a list or tuple
+                                if len(mess) == len(kwargs['delay']):
+                                    ret = True
+                                    for i in range(len(mess)):
+                                        result = addmsg(sock, command, mess[i], kwargs['delay'][i])
+                                        if not (ret and result):
+                                            ret = False
+                                    return ret
+                                else:
+                                    chat(sock, "Failed to edit \"!%s\": number of messages and delays provided must match." % (command.name))
+                                    return False
                         else:
-                            #delay is a list or tuple
-                            if len(mess) == len(kwargs['delay']):
+                            #if delays supplied as numbers, and not a kwarg
+                            #check that # of delays and # of messages equal
+                            if len(nums) == len(mess):
+                                ret = True
                                 for i in range(len(mess)):
-                                    addmsg(sock, command, mess[i], kwargs['delay'][i])
-                                return True
+                                    result = addmsg(sock, command, mess[i], nums[i])
+                                    if not (ret and result):
+                                        ret = False
+                                return ret
                             else:
                                 chat(sock, "Failed to edit \"!%s\": number of messages and delays provided must match." % (command.name))
                                 return False
                     else:
-                        #if delays supplied as numbers, and not a kwarg
-                        #check that # of delays and # of messages equal
-                        if len(nums) == len(mess):
-                            for i in range(len(mess)):
-                                addmsg(sock, command, mess[i], nums[i])
-                            return True
-                        else:
-                            chat(sock, "Failed to edit \"!%s\": number of messages and delays provided must match." % (command.name))
+                        #command does not use delays
+                        if ('delay' in kwargs) or bool(nums):
+                            #addmsg could also handle error message, but easier not to process delays since their values are irrelevant
+                            chat(sock, "Command \"!%s\" does not support delayed messages." % (command.name))
                             return False
+                        else:
+                            ret = True
+                            for i in range(len(mess)):
+                                result = addmsg(sock, command, mess[i])
+                                if not (ret and result):
+                                    ret = False
+                            return ret
                 else:
-                    #command does not use delays
-                    if ('delay' in kwargs) or bool(nums):
-                        #addmsg could also handle error message, but easier not to process delays since their values are irrelevant
-                        chat(sock, "Command \"!%s\" does not support delayed messages." % (command.name))
-                        return False
-                    else:
-                        for i in range(len(mess)):
-                            addmsg(sock, command, mess[i])
-                        return True
+                    chat(sock, "You can only add messages to text-based commands")
+                    return False
 
             elif strings[0][:3] == "del":
                 print "should try to delete"
@@ -444,17 +521,37 @@ class editcom(Command):
                         result = deletealias(sock, command, strings[2:])
                         return result
                     elif strings[1] in ['m', 'mess', 'message']:
-                        #add messages here
-                        pass
-                    chat(sock, "As a preventative measure, deleting commands requires exact syntax.\
-                        \"!editcom <command> del\" deletes the whole command. \
-                        \"!editcom <command> del alias <alias1> <alias2>...\" deletes all provided aliases \
-                        (replacing <alias> with \"all\" deletes all existing aliases)")
-
+                        if nums:
+                            nums = removedups(nums)
+                            nums = transformindices(nums)
+                            #now loop through messages to be deleted
+                            ret = True
+                            for i in nums:
+                                result = delmsg(sock, command, int(i))
+                            if not (ret and result):
+                                ret = False
+                            return ret
+                        else:
+                            chat(sock, "No message indices provided.")
+                            return False
+                    #if we get deletion request in the wrong format, send help message
+                    deletionhelp(sock)
                     return False
                 if nums:
-                    #delete message at specified index
-                    pass
+                    #delete messages at specified indices
+
+                    nums = removedups(nums)
+
+                    nums = transformindices(nums)
+
+                    #now loop through messages to be deleted
+                    ret = True
+                    for i in nums:
+                        result = delmsg(sock, command, int(i))
+                    if not (ret and result):
+                        ret = False
+                    return ret
+
                 else:
                     #delete specified command entirely if no additional args provided
                     print "attempting to delete command"

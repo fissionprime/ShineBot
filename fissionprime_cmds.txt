@@ -9,13 +9,15 @@
                 "test command 2", 
                 "delayed message", 
                 "third message", 
-                "one more message"
+                "is this the last message? \ud83d\udcaf", 
+                "another message"
             ], 
             "text": true, 
             "delays": [
                 5.0, 
-                3, 
-                4
+                4.0, 
+                1.0, 
+                3.0
             ], 
             "formats": {
                 "__call__": {
@@ -72,7 +74,8 @@
             "mess": [
                 "message 1", 
                 "message 2", 
-                "message 3"
+                "message 3", 
+                "trying to add message to non-text command"
             ], 
             "text": true, 
             "delays": [], 
